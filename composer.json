@@ -1,0 +1,41 @@
+{
+    "name": "brummbar/composer-patches-local",
+    "description": "A composer-patches v2 plugin that keeps every applied patch as a local file in your project, including the patches of your dependencies.",
+    "type": "composer-plugin",
+    "license": "EUPL-1.2",
+    "require": {
+        "php": ">=8.3",
+        "composer-plugin-api": "^2.9",
+        "cweagans/composer-patches": "^2.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.9",
+        "phpunit/phpunit": "^12.5",
+        "symfony/process": "^7.4",
+        "phpstan/phpstan": "^2.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Brummbar\\ComposerPatchesLocal\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Brummbar\\ComposerPatchesLocal\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "class": "Brummbar\\ComposerPatchesLocal\\Plugin"
+    },
+    "scripts": {
+        "phpstan": "phpstan analyse"
+    },
+    "config": {
+        "platform": {
+            "php": "8.3"
+        },
+        "allow-plugins": {
+            "cweagans/composer-patches": false
+        }
+    }
+}

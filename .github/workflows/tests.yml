@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        composer: [composer, composer-2.9]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker compose build
+      - name: Install dependencies
+        run: docker compose run --rm php composer install --no-interaction
+      - name: Run the tests
+        run: docker compose run --rm -e COMPOSER_BINARY=${{ matrix.composer }} php vendor/bin/phpunit
+  phpstan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker compose build
+      - name: Install dependencies
+        run: docker compose run --rm php composer install --no-interaction
+      - name: Run PHPStan
+        run: docker compose run --rm php vendor/bin/phpstan analyse --no-progress

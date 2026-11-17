@@ -1,0 +1,21 @@
+services:
+  php:
+    build: docker/php
+    init: true
+    volumes:
+      - .:/app
+      - composer-cache:/composer-cache
+    depends_on:
+      - patches
+
+  # Serves test patches as "remote" URLs: http://patches/<file>.
+  # Fixture projects must set "config": {"secure-http": false} to download over plain HTTP.
+  patches:
+    image: php:8.3-cli
+    init: true
+    command: php -S 0.0.0.0:80 -t /srv
+    volumes:
+      - ./tests/fixtures/remote-patches:/srv:ro
+
+volumes:
+  composer-cache:
