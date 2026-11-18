@@ -19,11 +19,12 @@ use cweagans\Composer\Patch;
  */
 final class Repatch
 {
-    private const NEVER_REINSTALL = [
-        'cweagans/composer-patches',
-        'cweagans/composer-configurable-plugin',
-        Plugin::NAME,
-    ];
+    /**
+     * composer-patches never applies patches to these packages.
+     * Because of this, the plugin never reinstalls them.
+     * See Patches::patchPackage() in cweagans/composer-patches.
+     */
+    private const UPSTREAM = ['cweagans/composer-patches', 'cweagans/composer-configurable-plugin'];
 
     private const PLUGIN_TYPES = ['composer-plugin', 'composer-installer'];
 
@@ -74,7 +75,7 @@ final class Repatch
         $localRepo = $this->composer->getRepositoryManager()->getLocalRepository();
         foreach ($localRepo->getCanonicalPackages() as $package) {
             $name = $package->getName();
-            if (in_array($name, self::NEVER_REINSTALL, true)) {
+            if (in_array($name, self::UPSTREAM, true)) {
                 continue;
             }
             /** @var list<Patch> $packagePatches */
@@ -105,7 +106,7 @@ final class Repatch
      */
     private function appliedPatches(string $name): array
     {
-        if (in_array($name, self::NEVER_REINSTALL, true)) {
+        if (in_array($name, self::UPSTREAM, true)) {
             return [];
         }
         $collection = ComposerPatches::loadedPatches(ComposerPatches::find($this->composer));

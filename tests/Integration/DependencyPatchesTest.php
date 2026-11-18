@@ -295,6 +295,34 @@ final class DependencyPatchesTest extends ComposerTestCase
         $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
     }
 
+    public function testAChangedPatchOfThisPluginShowsTheWarningForPlugins(): void
+    {
+        $notesPatch = static fn (string $line): string => "--- /dev/null\n+++ b/NOTES.txt\n@@ -0,0 +1 @@\n+$line\n";
+        $patchFile = 'patches/plugin-notes.patch';
+        $root = Layers::site(
+            [$patchFile => $notesPatch('one')],
+            ['patches' => ['brummbar/composer-patches-local' => ['Add notes' => $patchFile]]],
+        );
+        $project = $this->layeredProject(Layers::moduleOne(), $root);
+
+        $first = $project->composer(['install']);
+
+        $this->assertComposerSucceeded($first);
+        $this->assertProjectFileSame("one\n", $project, 'vendor/brummbar/composer-patches-local/NOTES.txt');
+        $this->assertStringNotContainsString('is a Composer plugin', $first->output, $this->describe('The first install must not warn.', $first));
+
+        $second = $project->composer(['install']);
+
+        $this->assertComposerSucceeded($second);
+        $this->assertStringNotContainsString('is a Composer plugin', $second->output, $this->describe('An install without changes must not warn.', $second));
+
+        FileSystem::write($project->projectPath($patchFile), $notesPatch('two'));
+        $third = $project->composer(['update', '--lock']);
+
+        $this->assertComposerSucceeded($third);
+        $this->assertOutputContains('brummbar/composer-patches-local is a Composer plugin', $third);
+    }
+
     private function layeredProject(FixturePackage $moduleOne, ?FixturePackage $root = null, bool $disableResolver = true): ComposerProject
     {
         $project = $this->createProject();
