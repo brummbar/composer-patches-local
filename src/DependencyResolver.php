@@ -75,9 +75,9 @@ final class DependencyResolver extends ResolverBase
                 }
                 foreach ($targetPatches as $patch) {
                     $declared = $patch->url;
-                    $remote = preg_match('#^([a-z][a-z0-9+.-]*)://#i', $declared, $matches) === 1;
+                    $scheme = PatchPath::urlScheme($declared);
+                    $remote = $scheme !== null;
                     if ($remote) {
-                        $scheme = strtolower($matches[1]);
                         if (!in_array($scheme, $allowedSchemes, true)) {
                             throw $this->schemeError($package, $declared, $scheme, $allowedSchemes);
                         }

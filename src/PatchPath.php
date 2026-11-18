@@ -13,12 +13,26 @@ final class PatchPath
 
     public const COPY_FOLDER = 'patches/dependencies';
 
+    public const SCHEME_PATTERN = '[a-z][a-z0-9+.-]*';
+
+    /**
+     * Returns the lowercase scheme when the path starts with "<scheme>://", or null.
+     */
+    public static function urlScheme(string $path): ?string
+    {
+        if (preg_match('#^(' . self::SCHEME_PATTERN . ')://#i', $path, $matches) !== 1) {
+            return null;
+        }
+
+        return strtolower($matches[1]);
+    }
+
     /**
      * Returns why a path is not a relative path inside patches/, or null when it is.
      */
     public static function problem(string $path): ?string
     {
-        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $path)) {
+        if (self::urlScheme($path) !== null) {
             return 'the patch is a URL';
         }
         $slashed = str_replace('\\', '/', $path);

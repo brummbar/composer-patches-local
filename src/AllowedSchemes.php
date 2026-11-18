@@ -30,7 +30,7 @@ final class AllowedSchemes
         }
         $result = [];
         foreach ($schemes as $scheme) {
-            if (!is_string($scheme) || !preg_match('/^[a-z][a-z0-9+.-]*$/i', $scheme)) {
+            if (!is_string($scheme) || !preg_match('/^' . PatchPath::SCHEME_PATTERN . '$/i', $scheme)) {
                 throw self::invalid();
             }
             $result[] = strtolower($scheme);
