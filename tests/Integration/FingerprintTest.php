@@ -94,6 +94,26 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertSame('patches/root.patch', $lock['patches']['acme/lib'][0]['url']);
     }
 
+    public function testInstallWithDownloadOnlyChangesNothing(): void
+    {
+        $project = $this->createProject();
+        Layers::addLayers($project, Layers::moduleOne());
+        $project->setRoot(Layers::site())->withPlugin();
+        $this->assertComposerSucceeded($project->composer(['install']));
+
+        $project->setRoot(Layers::site(
+            ['patches/root.patch' => Layers::lineTwoPatch('root')],
+            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
+        ));
+        $vendorFile = $project->readFile('vendor/acme/lib/lib.txt');
+        $lock = $project->readFile('patches.lock.json');
+
+        $this->assertComposerSucceeded($project->composer(['install', '--download-only']));
+
+        $this->assertProjectFileSame($vendorFile, $project, 'vendor/acme/lib/lib.txt');
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+    }
+
     public function testUpdateLockRebuildsTheLockAndAppliesANewRootPatch(): void
     {
         $project = $this->createProject();

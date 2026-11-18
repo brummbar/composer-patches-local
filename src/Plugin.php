@@ -15,7 +15,9 @@ use Composer\Installer\PackageEvents;
 use Composer\IO\IOInterface;
 use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
 use Composer\Plugin\Capable;
+use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
+use Composer\Plugin\PreCommandRunEvent;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use cweagans\Composer\Capability\Resolver\ResolverProvider;
@@ -26,6 +28,8 @@ use cweagans\Composer\Capability\Resolver\ResolverProvider;
 final class Plugin implements PluginInterface, EventSubscriberInterface, Capable, SkippedPackages
 {
     public const NAME = 'brummbar/composer-patches-local';
+
+    private const NOT_INSTALLED_MESSAGE = '<info>composer-patches-local: Composer did not install the packages, so the plugin does not lock or apply patches.</info>';
 
     private Composer $composer;
 
@@ -38,6 +42,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     private bool $relockRun = false;
 
     private bool $startRelockDone = false;
+
+    /** True when the command is "install --download-only". Composer does not tell script events about this option. */
+    private bool $downloadOnly = false;
 
     /** @var list<string> */
     private array $skippedPackages = [];
@@ -67,6 +74,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     public static function getSubscribedEvents(): array
     {
         return [
+            PluginEvents::PRE_COMMAND_RUN => 'detectDownloadOnly',
             ScriptEvents::PRE_INSTALL_CMD => 'startInstall',
             ScriptEvents::PRE_UPDATE_CMD => 'startUpdate',
             InstallerEvents::PRE_OPERATIONS_EXEC => 'relockAtStart',
@@ -100,8 +108,17 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         ComposerPatches::assertConfigured(ComposerPatches::find($this->composer));
     }
 
+    public function detectDownloadOnly(PreCommandRunEvent $event): void
+    {
+        $input = $event->getInput();
+        $this->downloadOnly = $input->hasOption('download-only') && $input->getOption('download-only');
+    }
+
     public function startInstall(): void
     {
+        if ($this->downloadOnly) {
+            return;
+        }
         $this->checkConfiguration();
         $this->installRunStarted = true;
         $check = new RuleCheck($this->composer);
@@ -126,7 +143,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
      */
     public function relockAtStart(InstallerEvent $event): void
     {
-        if (!$this->relockRun) {
+        if ($this->downloadOnly || !$this->relockRun) {
             return;
         }
         $skipped = [];
@@ -144,7 +161,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     public function finishUpdate(Event $event): void
     {
         if ($this->relockRun && !$this->startRelockDone) {
-            $this->io->writeError('<info>composer-patches-local: Composer did not install the packages, so the plugin does not lock or apply patches.</info>');
+            $this->io->writeError(self::NOT_INSTALLED_MESSAGE);
             return;
         }
         $this->finishWithRelock($event);
@@ -152,6 +169,10 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
     public function finishInstall(Event $event): void
     {
+        if ($this->downloadOnly) {
+            $this->io->writeError(self::NOT_INSTALLED_MESSAGE);
+            return;
+        }
         if ($this->relockRun || (!$this->installRunStarted && !Fingerprint::isCurrent($this->composer))) {
             $this->finishWithRelock($event);
             return;
