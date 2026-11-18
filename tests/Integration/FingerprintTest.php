@@ -94,6 +94,24 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertSame('patches/root.patch', $lock['patches']['acme/lib'][0]['url']);
     }
 
+    public function testAChangeOfPackageDepthsChangesTheFingerprint(): void
+    {
+        $project = $this->createProject();
+        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
+        $project->setRoot(Layers::site())->withPlugin();
+        $this->assertComposerSucceeded($project->composer(['install']));
+        $oldFingerprint = $project->readPatchesLock()[self::KEY] ?? null;
+
+        $project->setRoot(Layers::site([], ['composer-patches' => ['package-depths' => ['acme/lib' => 1]]]));
+        $this->assertComposerSucceeded($project->composer(['install']));
+
+        $this->assertNotSame(
+            $oldFingerprint,
+            $project->readPatchesLock()[self::KEY] ?? null,
+            'A change of package-depths must change the fingerprint.',
+        );
+    }
+
     public function testInstallWithDownloadOnlyChangesNothing(): void
     {
         $project = $this->createProject();
