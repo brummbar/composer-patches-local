@@ -75,9 +75,7 @@ final class FingerprintTest extends ComposerTestCase
 
     public function testAnInstallAppliesANewRootPatchWithoutARelockAndWithoutNetwork(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOne());
         $this->assertComposerSucceeded($project->composer(['install']));
         $oldLock = $project->readPatchesLock();
 
@@ -96,9 +94,7 @@ final class FingerprintTest extends ComposerTestCase
 
     public function testAChangeOfPackageDepthsChangesTheFingerprint(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
         $this->assertComposerSucceeded($project->composer(['install']));
         $oldFingerprint = $project->readPatchesLock()[self::KEY] ?? null;
 
@@ -114,9 +110,7 @@ final class FingerprintTest extends ComposerTestCase
 
     public function testInstallWithDownloadOnlyChangesNothing(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOne());
         $this->assertComposerSucceeded($project->composer(['install']));
 
         $project->setRoot(Layers::site(
@@ -134,9 +128,7 @@ final class FingerprintTest extends ComposerTestCase
 
     public function testUpdateLockRebuildsTheLockAndAppliesANewRootPatch(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOne());
         $this->assertComposerSucceeded($project->composer(['install']));
         $oldLock = $project->readPatchesLock();
 
@@ -155,13 +147,11 @@ final class FingerprintTest extends ComposerTestCase
 
     private function projectWithLocalPatch(): ComposerProject
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne(
+        $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
             ['acme/lib' => ['Change line one' => 'patches/lib-line-one.patch']],
             ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one')],
         ));
-        $project->setRoot(Layers::site())->withPlugin();
 
         return $project;
     }

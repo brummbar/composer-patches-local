@@ -34,6 +34,18 @@ abstract class ComposerTestCase extends TestCase
     }
 
     /**
+     * Makes a project with the layered fixtures and this plugin.
+     */
+    protected function layeredProject(FixturePackage $moduleOne, ?FixturePackage $root = null, bool $disableResolver = true): ComposerProject
+    {
+        $project = $this->createProject();
+        LayeredFixtures::addLayers($project, $moduleOne);
+        $project->setRoot($root ?? LayeredFixtures::site())->withPlugin($disableResolver);
+
+        return $project;
+    }
+
+    /**
      * Registers a project that the test made, for example a checkout, so that tear down removes it.
      */
     protected function track(ComposerProject $project): ComposerProject

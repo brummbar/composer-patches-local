@@ -6,7 +6,6 @@ namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
-use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 
 /**
@@ -64,9 +63,7 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
 
     public function testReinstallWithoutAPatchesLockKeepsThePackageAndItsPatches(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
         $this->assertComposerSucceeded($project->composer(['install']));
         unlink($project->projectPath('patches.lock.json'));
 
@@ -84,8 +81,7 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
 
     private function installedProject(): ComposerProject
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne(
+        $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
             ['acme/lib' => [
                 'Change line one' => 'patches/lib-line-one.patch',
@@ -93,7 +89,6 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
             ]],
             ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one')],
         ));
-        $project->setRoot(Layers::site())->withPlugin();
         $this->assertComposerSucceeded($project->composer(['install']));
         $this->assertProjectFileSame(self::PATCHED, $project, 'vendor/acme/lib/lib.txt');
 

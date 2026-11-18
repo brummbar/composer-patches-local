@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
-use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
@@ -48,14 +47,5 @@ final class PluginUpdateTest extends ComposerTestCase
             $project,
             'vendor/acme/lib/lib.txt',
         );
-    }
-
-    private function layeredProject(FixturePackage $moduleOne): ComposerProject
-    {
-        $project = $this->createProject();
-        Layers::addLayers($project, $moduleOne);
-        $project->setRoot(Layers::site())->withPlugin();
-
-        return $project;
     }
 }

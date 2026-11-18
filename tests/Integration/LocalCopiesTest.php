@@ -50,12 +50,10 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testTwoDifferentPatchesWithTheSameFileNameGetAHashPrefix(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne('1.0.0', ['acme/lib' => [
+        $project = $this->layeredProject(Layers::moduleOne('1.0.0', ['acme/lib' => [
             'Change line one' => 'http://patches/a/fix.patch',
             'Change line three' => 'http://patches/b/fix.patch',
         ]]));
-        $project->setRoot(Layers::site())->withPlugin();
 
         $this->assertComposerSucceeded($project->composer(['install']));
 
@@ -76,8 +74,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testTwoPatchNamesThatDifferOnlyInCaseGetAHashPrefix(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne(
+        $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
             ['acme/lib' => [
                 'Change line one' => 'patches/Fix.patch',
@@ -85,7 +82,6 @@ final class LocalCopiesTest extends ComposerTestCase
             ]],
             ['patches/Fix.patch' => Layers::lineOnePatch('module-one')],
         ));
-        $project->setRoot(Layers::site())->withPlugin();
 
         $this->assertComposerSucceeded($project->composer(['install']));
 
@@ -107,9 +103,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testACopyAndItsEmptyFoldersAreDeletedWhenTheDependencyDropsThePatch(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, $this->moduleOneWithLocalAndRemotePatch());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject($this->moduleOneWithLocalAndRemotePatch());
         $this->assertComposerSucceeded($project->composer(['install']));
         FileSystem::write($project->projectPath('patches/own.txt'), 'mine');
         FileSystem::write($project->projectPath('patches/dependencies/acme/old/keep-me.txt'), 'unused copy');
@@ -126,9 +120,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testAFileOutsideTheCopyFolderStaysWhenTheCleanUpRuns(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
         $this->assertComposerSucceeded($project->composer(['install']));
         FileSystem::write($project->projectPath('other/keep.txt'), 'mine');
         FileSystem::write($project->projectPath('patches/keep.patch'), 'mine');
@@ -142,8 +134,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testATargetNameThatLeavesTheCopyFolderStopsTheRun(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne(
+        $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
             [
                 'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
@@ -154,7 +145,6 @@ final class LocalCopiesTest extends ComposerTestCase
                 'patches/outside.patch' => Layers::lineTwoPatch('evil'),
             ],
         ));
-        $project->setRoot(Layers::site())->withPlugin();
 
         $result = $project->composer(['install']);
 
@@ -166,8 +156,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testAPatchForAPackageThatIsNotInTheProjectIsSkipped(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOne(
+        $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
             [
                 'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
@@ -178,7 +167,6 @@ final class LocalCopiesTest extends ComposerTestCase
                 'patches/absent.patch' => Layers::lineTwoPatch('absent'),
             ],
         ));
-        $project->setRoot(Layers::site())->withPlugin();
 
         $result = $project->composer(['install']);
 
@@ -337,10 +325,6 @@ final class LocalCopiesTest extends ComposerTestCase
 
     private function projectWithLocalAndRemotePatch(): ComposerProject
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, $this->moduleOneWithLocalAndRemotePatch());
-        $project->setRoot(Layers::site())->withPlugin();
-
-        return $project;
+        return $this->layeredProject($this->moduleOneWithLocalAndRemotePatch());
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
-use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerResult;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
@@ -321,15 +320,6 @@ final class DependencyPatchesTest extends ComposerTestCase
 
         $this->assertComposerSucceeded($third);
         $this->assertOutputContains('brummbar/composer-patches-local is a Composer plugin', $third);
-    }
-
-    private function layeredProject(FixturePackage $moduleOne, ?FixturePackage $root = null, bool $disableResolver = true): ComposerProject
-    {
-        $project = $this->createProject();
-        Layers::addLayers($project, $moduleOne);
-        $project->setRoot($root ?? Layers::site())->withPlugin($disableResolver);
-
-        return $project;
     }
 
     /**

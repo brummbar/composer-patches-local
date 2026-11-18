@@ -150,9 +150,7 @@ final class RuleCheckTest extends ComposerTestCase
 
     private function installedProject(): ComposerProject
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
-        $project->setRoot(Layers::site())->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
         $this->assertComposerSucceeded($project->composer(['install']));
 
         return $project;
