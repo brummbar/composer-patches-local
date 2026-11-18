@@ -18,6 +18,14 @@ use cweagans\Composer\Resolver\ResolverBase;
  */
 final class DependencyResolver extends ResolverBase
 {
+    /**
+     * The plugin rebuilds the lock two times in one run. With a known sha256, composer-patches reads its cache
+     * and does not download the same URL again.
+     *
+     * @var array<string, string>
+     */
+    private static array $knownHashes = [];
+
     public function resolve(PatchCollection $collection): void
     {
         $patches = ComposerPatches::find($this->composer);
@@ -82,6 +90,9 @@ final class DependencyResolver extends ResolverBase
                         $content = $this->readLocalPatch($package, $declared, $projectDirectory);
                         $name = basename($declared);
                     } else {
+                        if (!isset($patch->sha256) && isset(self::$knownHashes[$declared])) {
+                            $patch->sha256 = self::$knownHashes[$declared];
+                        }
                         $patches->download($patch);
                         $content = (string) file_get_contents((string) $patch->localPath);
                         // composer-patches must read the copy, not the downloaded file.
@@ -92,6 +103,9 @@ final class DependencyResolver extends ResolverBase
                         throw new \RuntimeException("The patch $declared of {$package->getName()} does not match its sha256.");
                     }
                     $patch->sha256 = hash('sha256', $content);
+                    if ($remote) {
+                        self::$knownHashes[$declared] = $patch->sha256;
+                    }
                     $copies->add($patch, $package->getName(), $name, $content);
                     $found[] = $patch;
                 }
