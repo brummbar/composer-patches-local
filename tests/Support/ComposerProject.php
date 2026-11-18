@@ -123,25 +123,6 @@ final class ComposerProject
     }
 
     /**
-     * Uses a given Composer cache directory instead of an empty one.
-     */
-    public function useCacheDirectory(string $directory): self
-    {
-        $this->cacheDirectory = $directory;
-        return $this;
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     *   Extra "config" entries for the root composer.json.
-     */
-    public function addRootConfig(array $config): self
-    {
-        $this->rootConfig = array_replace($this->rootConfig, $config);
-        return $this;
-    }
-
-    /**
      * @param list<string> $arguments
      *   Composer arguments, for example ['install'].
      * @param array<string, string> $environment

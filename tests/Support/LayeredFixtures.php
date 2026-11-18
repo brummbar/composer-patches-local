@@ -17,8 +17,6 @@ final class LayeredFixtures
 
     public const REMOTE_PATCH_URL = 'http://patches/lib-line-two.patch';
 
-    public const REMOTE_PATCH_LINE_THREE_URL = 'http://patches/lib-line-three.patch';
-
     public static function lib(string $version = '1.0.0'): FixturePackage
     {
         return new FixturePackage('acme/lib', $version, ['lib.txt' => self::LIB_FILE]);
