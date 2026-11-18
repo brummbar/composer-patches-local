@@ -46,6 +46,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     /** True when the command is "install --download-only". Composer does not tell script events about this option. */
     private bool $downloadOnly = false;
 
+    /** True when the command is "reinstall". Composer does not dispatch pre-operations-exec for it. */
+    private bool $reinstall = false;
+
     /** @var list<string> */
     private array $skippedPackages = [];
 
@@ -74,7 +77,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     public static function getSubscribedEvents(): array
     {
         return [
-            PluginEvents::PRE_COMMAND_RUN => 'detectDownloadOnly',
+            PluginEvents::PRE_COMMAND_RUN => 'readCommand',
             ScriptEvents::PRE_INSTALL_CMD => 'startInstall',
             ScriptEvents::PRE_UPDATE_CMD => 'startUpdate',
             InstallerEvents::PRE_OPERATIONS_EXEC => 'relockAtStart',
@@ -108,8 +111,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         ComposerPatches::assertConfigured(ComposerPatches::find($this->composer));
     }
 
-    public function detectDownloadOnly(PreCommandRunEvent $event): void
+    public function readCommand(PreCommandRunEvent $event): void
     {
+        $this->reinstall = $event->getCommand() === 'reinstall';
         $input = $event->getInput();
         $this->downloadOnly = $input->hasOption('download-only') && $input->getOption('download-only');
     }
@@ -129,6 +133,10 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
             $this->relockRun = true;
         }
         $this->failOn($violations);
+        if ($this->reinstall && $this->relockRun) {
+            (new Relock($this->composer, $this))->run([]);
+            $this->startRelockDone = true;
+        }
     }
 
     public function startUpdate(): void

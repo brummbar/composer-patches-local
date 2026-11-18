@@ -62,6 +62,26 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
         $this->assertSame($copies, $project->tree('patches'));
     }
 
+    public function testReinstallWithoutAPatchesLockKeepsThePackageAndItsPatches(): void
+    {
+        $project = $this->createProject();
+        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
+        $project->setRoot(Layers::site())->withPlugin();
+        $this->assertComposerSucceeded($project->composer(['install']));
+        unlink($project->projectPath('patches.lock.json'));
+
+        $result = $project->composer(['reinstall', 'acme/module-one']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertDirectoryExists($project->projectPath('vendor/acme/module-one'));
+        $this->assertFileExists($project->projectPath('patches.lock.json'));
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+    }
+
     private function installedProject(): ComposerProject
     {
         $project = $this->createProject();
