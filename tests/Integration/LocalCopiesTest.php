@@ -132,7 +132,7 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertProjectFileSame('mine', $project, 'patches/keep.patch');
     }
 
-    public function testATargetNameThatLeavesTheCopyFolderStopsTheRun(): void
+    public function testATargetNameThatIsNotAPackageNameIsSkipped(): void
     {
         $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
@@ -148,10 +148,18 @@ final class LocalCopiesTest extends ComposerTestCase
 
         $result = $project->composer(['install']);
 
+        $this->assertComposerSucceeded($result);
         $this->assertFalse($project->fileExists('patches/outside.patch'), 'A copy must not leave its folder.');
-        $this->assertComposerFailed($result);
-        $this->assertOutputContains('acme/module-one', $result);
-        $this->assertOutputContains('../../..', $result);
+        $this->assertArrayNotHasKey(
+            '../../..',
+            $project->readPatchesLock()['patches'],
+            'The patches lock must not list a name that is not a package name.',
+        );
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
     }
 
     public function testAPatchForAPackageThatIsNotInTheProjectIsSkipped(): void

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Brummbar\ComposerPatchesLocal;
 
 use Composer\Package\AliasPackage;
-use Composer\Package\Loader\ValidatingArrayLoader;
 use Composer\Package\PackageInterface;
 use Composer\Util\Filesystem;
 use cweagans\Composer\Patch;
@@ -59,15 +58,6 @@ final class DependencyResolver extends ResolverBase
             $definition = $extra['patches'];
             /** @var array<string, list<Patch>> $grouped */
             $grouped = $this->findPatchesInJson($definition);
-            foreach (array_keys($grouped) as $target) {
-                if (ValidatingArrayLoader::hasPackageNamingError(strtolower((string) $target)) !== null) {
-                    $declaring = $package->getName();
-                    throw new \RuntimeException(
-                        "composer-patches-local: the package $declaring declares patches for \"$target\". That is not a valid package name.\n"
-                        . "To skip the patches of $declaring, add it to \"ignore-dependency-patches\" in extra.composer-patches of the root composer.json."
-                    );
-                }
-            }
             foreach ($grouped as $target => $targetPatches) {
                 // composer-patches applies a patch only to a package in composer.lock, and never to its own two packages.
                 // It finds a patch only by the exact package name, which is lowercase.
