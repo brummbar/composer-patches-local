@@ -29,6 +29,11 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 {
     public const NAME = 'brummbar/composer-patches-local';
 
+    /**
+     * The key of the plugin in composer.json, patches.lock.json and installed.json.
+     */
+    public const KEY = 'composer-patches-local';
+
     private const NOT_INSTALLED_MESSAGE = '<info>composer-patches-local: Composer did not install the packages, so the plugin does not lock or apply patches.</info>';
 
     private Composer $composer;

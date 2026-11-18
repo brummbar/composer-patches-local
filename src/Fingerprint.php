@@ -12,8 +12,6 @@ use Composer\Package\AliasPackage;
  */
 final class Fingerprint
 {
-    public const KEY = 'composer-patches-local';
-
     /**
      * Returns the hash of the patch inputs of the root project and of the locked packages.
      */
@@ -71,7 +69,7 @@ final class Fingerprint
             return false;
         }
         try {
-            $stored = ComposerPatches::readLock(ComposerPatches::find($composer))[self::KEY] ?? null;
+            $stored = ComposerPatches::readLock(ComposerPatches::find($composer))[Plugin::KEY] ?? null;
         } catch (\Throwable) {
             return false;
         }
@@ -83,7 +81,7 @@ final class Fingerprint
     {
         $lockFile = ComposerPatches::find($composer)->getLockFile();
         $data = ComposerPatches::readLock(ComposerPatches::find($composer));
-        $data[self::KEY] = self::compute($composer);
+        $data[Plugin::KEY] = self::compute($composer);
         ksort($data);
         $lockFile->write($data);
     }

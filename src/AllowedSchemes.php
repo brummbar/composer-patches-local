@@ -20,7 +20,7 @@ final class AllowedSchemes
      */
     public static function fromRoot(RootPackageInterface $root): array
     {
-        $settings = $root->getExtra()['composer-patches-local'] ?? [];
+        $settings = $root->getExtra()[Plugin::KEY] ?? [];
         if (!is_array($settings) || !array_key_exists('allowed-schemes', $settings)) {
             return self::DEFAULT;
         }

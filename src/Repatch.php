@@ -19,8 +19,6 @@ use cweagans\Composer\Patch;
  */
 final class Repatch
 {
-    private const EXTRA_KEY = 'composer-patches-local';
-
     private const NEVER_REINSTALL = [
         'cweagans/composer-patches',
         'cweagans/composer-configurable-plugin',
@@ -54,9 +52,9 @@ final class Repatch
         foreach ($event->getLocalRepo()->getPackages() as $installed) {
             if ($installed instanceof Package && $installed->getName() === $package->getName()) {
                 $extra = $installed->getExtra();
-                unset($extra[self::EXTRA_KEY]);
+                unset($extra[Plugin::KEY]);
                 if ($hash !== null) {
-                    $extra[self::EXTRA_KEY] = $hash;
+                    $extra[Plugin::KEY] = $hash;
                 }
                 $installed->setExtra($extra);
             }
@@ -82,7 +80,7 @@ final class Repatch
             /** @var list<Patch> $packagePatches */
             $packagePatches = $collection?->getPatchesForPackage($name) ?? [];
             $expected = $this->patchHash($packagePatches);
-            if (($package->getExtra()[self::EXTRA_KEY] ?? null) === $expected) {
+            if (($package->getExtra()[Plugin::KEY] ?? null) === $expected) {
                 continue;
             }
             if (in_array($package->getType(), self::PLUGIN_TYPES, true)) {
@@ -107,10 +105,10 @@ final class Repatch
      */
     private function appliedPatches(string $name): array
     {
-        $collection = ComposerPatches::loadedPatches(ComposerPatches::find($this->composer));
-        if ($name === 'cweagans/composer-patches' || $name === 'cweagans/composer-configurable-plugin') {
+        if (in_array($name, self::NEVER_REINSTALL, true)) {
             return [];
         }
+        $collection = ComposerPatches::loadedPatches(ComposerPatches::find($this->composer));
 
         /** @var list<Patch> $applied */
         $applied = $collection?->getPatchesForPackage($name) ?? [];
