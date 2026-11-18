@@ -24,9 +24,6 @@ final class CopyCleanup
             $keep[PatchPath::normalise($path) ?? $path] = true;
         }
         self::clean($root, PatchPath::COPY_FOLDER, $keep);
-        if (count(scandir($root) ?: []) === 2) {
-            rmdir($root);
-        }
     }
 
     /**
@@ -42,12 +39,12 @@ final class CopyCleanup
             $itemRelative = $relative . '/' . $item;
             if (is_dir($path) && !is_link($path)) {
                 self::clean($path, $itemRelative, $keep);
-                if (count(scandir($path) ?: []) === 2) {
-                    rmdir($path);
-                }
             } elseif (!isset($keep[$itemRelative])) {
                 unlink($path);
             }
+        }
+        if (count(scandir($directory) ?: []) === 2) {
+            rmdir($directory);
         }
     }
 }
