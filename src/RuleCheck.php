@@ -148,7 +148,7 @@ final class RuleCheck
      */
     private function pluginProblem(string $package, array $pluginNames): ?string
     {
-        return in_array(strtolower($package), $pluginNames, true) ? 'a dependency must not patch a Composer plugin' : null;
+        return in_array($package, $pluginNames, true) ? 'a dependency must not patch a Composer plugin' : null;
     }
 
     /**

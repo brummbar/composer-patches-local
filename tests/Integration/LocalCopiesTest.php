@@ -223,6 +223,41 @@ final class LocalCopiesTest extends ComposerTestCase
         );
     }
 
+    public function testADependencyPatchForATargetNameWithCapitalLettersIsSkipped(): void
+    {
+        $target = 'Acme/Lib';
+        $project = $this->layeredProject(Layers::moduleOne(
+            '1.0.0',
+            [
+                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
+                $target => ['Change something' => 'patches/capitals.patch'],
+            ],
+            [
+                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
+                'patches/capitals.patch' => Layers::lineTwoPatch('capitals'),
+            ],
+        ));
+
+        $result = $project->composer(['update']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertArrayNotHasKey(
+            $target,
+            $project->readPatchesLock()['patches'],
+            'The patches lock must not list a target name with capital letters.',
+        );
+        $this->assertSame(
+            ['acme/lib/lib-line-two.patch'],
+            array_keys($project->tree('patches/dependencies/acme/module-one')),
+            'The plugin must not copy a patch for a target name with capital letters.',
+        );
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+    }
+
     #[DataProvider('providePatchPathsOutsideThePackage')]
     public function testAPatchPathOutsideThePackageStopsTheRun(string $declaredPath): void
     {

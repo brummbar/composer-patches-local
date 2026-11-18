@@ -70,13 +70,13 @@ final class DependencyResolver extends ResolverBase
             }
             foreach ($grouped as $target => $targetPatches) {
                 // composer-patches applies a patch only to a package in composer.lock, and never to its own two packages.
+                // It finds a patch only by the exact package name, which is lowercase.
                 // Thus, for these targets, the plugin makes no copy and no lock entry.
-                $targetName = strtolower((string) $target);
-                if (!isset($lockedTypes[$targetName]) || in_array($targetName, Repatch::UPSTREAM, true)) {
+                if (!isset($lockedTypes[$target]) || in_array($target, Repatch::UPSTREAM, true)) {
                     continue;
                 }
                 // The patched plugin code runs in Composer, so a dependency must not patch it.
-                if (in_array($lockedTypes[$targetName], Repatch::PLUGIN_TYPES, true)) {
+                if (in_array($lockedTypes[$target], Repatch::PLUGIN_TYPES, true)) {
                     $declaring = $package->getName();
                     throw new \RuntimeException(
                         "composer-patches-local: the package $declaring declares patches for the Composer plugin $target. Only the root project can patch a Composer plugin.\n"

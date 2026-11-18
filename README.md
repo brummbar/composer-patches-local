@@ -117,8 +117,12 @@ Copy such a patch to `patches/` and declare it as a project patch.
 
 If different patches get the same file name in one folder, the plugin puts the first 8 characters of their sha256 hash in front of each name, for example `1a2b3c4d-fix.patch`.
 
-The plugin skips a dependency patch that composer-patches does not apply. This is a patch for a package that is not in `composer.lock`, or for `cweagans/composer-patches` or `cweagans/composer-configurable-plugin`.
-It makes no copy and adds no entry to `patches.lock.json`.
+The plugin skips a dependency patch that composer-patches does not apply. It makes no copy and adds no entry to `patches.lock.json`.
+These are the patches for:
+
+- a package that is not in `composer.lock`,
+- a target name with capital letters, for example `Acme/Lib`, because package names are lowercase,
+- `cweagans/composer-patches` and `cweagans/composer-configurable-plugin`.
 
 A dependency cannot patch a Composer plugin (package types `composer-plugin` and `composer-installer`). Only the root project can.
 
