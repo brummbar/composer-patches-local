@@ -59,12 +59,16 @@ final class RuleCheck
 
     /**
      * Returns the violations in patches.lock.json and in the files that it references.
+     * Returns one violation when patches.lock.json does not exist.
      *
      * @return list<string>
      */
     public function lockViolations(): array
     {
         $lockFile = ComposerPatches::find($this->composer)->getLockFile();
+        if (!$lockFile->exists()) {
+            return ['  - patches.lock.json does not exist. Run composer install or composer update first.'];
+        }
         $directory = dirname($lockFile->getPath());
         $violations = [];
         /** @var array<string, list<array<string, mixed>>> $locked */
@@ -85,11 +89,6 @@ final class RuleCheck
         }
 
         return $violations;
-    }
-
-    public function lockExists(): bool
-    {
-        return is_file(ComposerPatches::find($this->composer)->getLockFile()->getPath());
     }
 
     /**

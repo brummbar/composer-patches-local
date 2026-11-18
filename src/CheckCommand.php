@@ -22,12 +22,7 @@ final class CheckCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $check = new RuleCheck($this->requireComposer());
-        $violations = $check->definitionViolations();
-        if ($check->lockExists()) {
-            $violations = array_merge($violations, $check->lockViolations());
-        } else {
-            $violations[] = '  - patches.lock.json does not exist. Run composer install or composer update first.';
-        }
+        $violations = array_merge($check->definitionViolations(), $check->lockViolations());
         if ($violations !== []) {
             $this->getIO()->writeError('<error>composer-patches-local: the patches of this project break the rules.</error>');
             $this->getIO()->writeError($violations);
