@@ -34,6 +34,7 @@ final class DependencyResolver extends ResolverBase
         $ignored = is_array($ignored) ? $ignored : [];
         $skipped = $this->plugin instanceof SkippedPackages ? $this->plugin->skippedPackages() : [];
         $projectDirectory = (new Filesystem())->normalizePath(ComposerPatches::projectDirectory($patches));
+        $allowedSchemes = AllowedSchemes::fromRoot($this->composer->getPackage());
         $copies = new DependencyCopies($projectDirectory);
         $found = [];
         $lockedNames = [];
@@ -66,7 +67,15 @@ final class DependencyResolver extends ResolverBase
                 }
                 foreach ($targetPatches as $patch) {
                     $declared = $patch->url;
-                    if ($this->isLocal($declared)) {
+                    $remote = preg_match('#^([a-z][a-z0-9+.-]*)://#i', $declared, $matches) === 1;
+                    if ($remote) {
+                        $scheme = strtolower($matches[1]);
+                        if (!in_array($scheme, $allowedSchemes, true)) {
+                            throw $this->schemeError($package, $declared, $scheme, $allowedSchemes);
+                        }
+                    }
+                    if (!$remote) {
+                        $this->assertRelativePath($package, $declared);
                         if (in_array($package->getName(), $skipped, true)) {
                             continue;
                         }
@@ -95,9 +104,48 @@ final class DependencyResolver extends ResolverBase
         }
     }
 
-    private function isLocal(string $url): bool
+    private function assertRelativePath(PackageInterface $package, string $declared): void
     {
-        return !preg_match('#^[a-z][a-z0-9+.-]*://#i', $url) && !(new Filesystem())->isAbsolutePath($url);
+        $filesystem = new Filesystem();
+        if ($filesystem->isAbsolutePath($declared)) {
+            throw $this->outsideError($package, $declared);
+        }
+        $normalized = $filesystem->normalizePath($declared);
+        if ($normalized === '..' || str_starts_with($normalized, '../')) {
+            throw $this->outsideError($package, $declared);
+        }
+    }
+
+    /**
+     * @param list<string> $allowedSchemes
+     */
+    private function schemeError(PackageInterface $package, string $declared, string $scheme, array $allowedSchemes): \RuntimeException
+    {
+        $declaring = $package->getName();
+        $list = implode(', ', $allowedSchemes);
+
+        return new \RuntimeException(
+            "composer-patches-local: the package $declaring declares the patch \"$declared\". "
+            . "The scheme \"$scheme\" is not in \"allowed-schemes\" in extra.composer-patches-local of the root composer.json.\n"
+            . "The allowed schemes are: $list.\n"
+            . $this->skipLine($declaring)
+        );
+    }
+
+    private function outsideError(PackageInterface $package, string $declared): \RuntimeException
+    {
+        $declaring = $package->getName();
+
+        return new \RuntimeException(
+            "composer-patches-local: the package $declaring declares the patch \"$declared\". "
+            . "A local patch of a dependency must be a path inside the folder of the package.\n"
+            . $this->skipLine($declaring)
+        );
+    }
+
+    private function skipLine(string $declaring): string
+    {
+        return "To skip the patches of $declaring, add it to \"ignore-dependency-patches\" in extra.composer-patches of the root composer.json.";
     }
 
     /**
@@ -116,6 +164,14 @@ final class DependencyResolver extends ResolverBase
         $file = $filesystem->normalizePath($installPath . '/' . $path);
         if (!is_file($file)) {
             throw new \RuntimeException("Package {$package->getName()} declares the patch $path, but the file $file does not exist.");
+        }
+        $realInstall = realpath($installPath);
+        $realFile = realpath($file);
+        if ($realInstall === false || $realFile === false) {
+            throw $this->outsideError($package, $path);
+        }
+        if (!str_starts_with($filesystem->normalizePath($realFile), $filesystem->normalizePath($realInstall) . '/')) {
+            throw $this->outsideError($package, $path);
         }
 
         return (string) file_get_contents($file);

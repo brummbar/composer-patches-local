@@ -50,6 +50,7 @@ final class Fingerprint
             'root-patches' => $composer->getPackage()->getExtra()['patches'] ?? null,
             'patches-file' => is_string($file) && is_file($file) ? (string) file_get_contents($file) : null,
             'ignore-dependency-patches' => $patches->getConfig('ignore-dependency-patches'),
+            'allowed-schemes' => AllowedSchemes::fromRoot($composer->getPackage()),
             'packages' => array_values($packages),
             'locked-packages' => $lockedNames,
         ];

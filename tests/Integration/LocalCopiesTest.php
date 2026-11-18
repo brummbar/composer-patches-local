@@ -9,6 +9,7 @@ use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Tests the copies of dependency patches in patches/dependencies/.
@@ -166,6 +167,59 @@ final class LocalCopiesTest extends ComposerTestCase
             $project,
             'vendor/acme/lib/lib.txt',
         );
+    }
+
+    #[DataProvider('providePatchPathsOutsideThePackage')]
+    public function testAPatchPathOutsideThePackageStopsTheRun(string $declaredPath): void
+    {
+        $project = $this->createProject();
+        $path = str_replace('{project}', $project->projectPath(), $declaredPath);
+        Layers::addLayers($project, Layers::moduleOne('1.0.0', ['acme/lib' => ['Read a secret' => $path]]));
+        $project->setRoot(Layers::site())->withPlugin();
+        FileSystem::write($project->projectPath('secret.txt'), "SECRET\n");
+
+        $result = $project->composer(['install']);
+
+        $this->assertSame(
+            [],
+            $project->tree('patches/dependencies'),
+            'A dependency must not copy a file from outside its package folder.',
+        );
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('acme/module-one', $result);
+        $this->assertOutputContains($path, $result);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function providePatchPathsOutsideThePackage(): array
+    {
+        return [
+            'relative path' => ['../../../secret.txt'],
+            'absolute path' => ['{project}/secret.txt'],
+            'file URL' => ['file://{project}/secret.txt'],
+        ];
+    }
+
+    public function testAnAllowedSchemeLetsADependencyPatchUseAFileUrl(): void
+    {
+        $project = $this->createProject();
+        $url = 'file://' . $project->projectPath('line-two.patch');
+        Layers::addLayers($project, Layers::moduleOne('1.0.0', ['acme/lib' => ['Change line two' => $url]]));
+        $project->setRoot(Layers::site(
+            ['line-two.patch' => Layers::lineTwoPatch('module-one')],
+            ['composer-patches-local' => ['allowed-schemes' => ['file']]],
+        ))->withPlugin();
+
+        $this->assertComposerSucceeded($project->composer(['install']));
+
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+        $this->assertSame(['line-two.patch'], array_keys($project->tree(self::FOLDER)));
     }
 
     public function testPatchesRelockWritesALockThatPointsAtCopies(): void
