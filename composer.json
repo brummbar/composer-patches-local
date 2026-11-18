@@ -27,9 +27,6 @@
     "extra": {
         "class": "Brummbar\\ComposerPatchesLocal\\Plugin"
     },
-    "scripts": {
-        "phpstan": "phpstan analyse"
-    },
     "config": {
         "platform": {
             "php": "8.3"

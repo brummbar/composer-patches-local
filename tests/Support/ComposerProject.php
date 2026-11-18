@@ -12,7 +12,7 @@ use Symfony\Component\Process\Process;
  * A root project in a temporary directory, with fixture packages around it.
  *
  * All packages are path repositories that Composer copies (no symlinks).
- * Packagist is off. The cweagans packages come from /app/vendor.
+ * Packagist is off. The cweagans packages come from the vendor folder of this repository.
  */
 final class ComposerProject
 {
