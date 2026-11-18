@@ -23,7 +23,7 @@ final class LayeredFixtures
     }
 
     /**
-     * @param array<string, array<string, string>> $patches
+     * @param array<string, array<mixed>> $patches
      *   Patch definitions for extra.patches, keyed by target package.
      * @param array<string, string> $files
      */

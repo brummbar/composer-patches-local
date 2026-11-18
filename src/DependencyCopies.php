@@ -60,8 +60,11 @@ final class DependencyCopies
 
             $patch = $entry['patch'];
             $patch->url = $path;
-            $patch->extra['provenance'] = 'dependency:' . $entry['declaring'];
-            $patch->extra['source'] = $entry['source'];
+            // A dependency must not control the patcher, so its other extra keys go away.
+            $patch->extra = [
+                'provenance' => 'dependency:' . $entry['declaring'],
+                'source' => $entry['source'],
+            ];
         }
         $this->entries = [];
     }

@@ -110,6 +110,11 @@ patches/
 }
 ```
 
+The plugin keeps only the patch file, the description and the depth of a dependency patch.
+It ignores the `extra` data of the dependency, for example `extra.freeform`.
+A dependency patch that needs a different patcher does not apply.
+Copy such a patch to `patches/` and declare it as a project patch.
+
 If different patches get the same file name in one folder, the plugin puts the first 8 characters of their sha256 hash in front of each name, for example `1a2b3c4d-fix.patch`.
 
 The plugin skips the patches for a package that is not in `composer.lock`. It makes no copy and adds no entry to `patches.lock.json`.
@@ -136,6 +141,7 @@ To change the list, set `allowed-schemes`. Your list replaces the default:
 - If `patches.lock.json` is missing or out of date, `composer install` rebuilds it, like `composer update`.
 - Run `composer patches-local-check` in CI, after `composer install`.
   It checks that each project patch and each entry in `patches.lock.json` is a file in `patches/`, and that each file matches its sha256.
+  It also checks that a dependency patch in `patches.lock.json` has no other `extra` data.
 
 ## Limitations
 

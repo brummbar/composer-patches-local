@@ -82,6 +82,9 @@ final class RuleCheck
                 if ($problem === null) {
                     $problem = $this->fileProblem($directory . '/' . PatchPath::normalise($url), $patch->sha256 ?? null);
                 }
+                if ($problem === null) {
+                    $problem = $this->extraProblem($patch->extra);
+                }
                 if ($problem !== null) {
                     $violations[] = $this->line($package, $description, $url, $problem);
                 }
@@ -113,6 +116,24 @@ final class RuleCheck
         }
 
         return hash_file('sha256', $file) === $sha256 ? null : 'the file content does not match the sha256 in patches.lock.json';
+    }
+
+    /**
+     * @param array<mixed> $extra
+     */
+    private function extraProblem(array $extra): ?string
+    {
+        $provenance = $extra['provenance'] ?? null;
+        if (!is_string($provenance) || !str_starts_with($provenance, 'dependency:')) {
+            return null;
+        }
+        $keys = array_diff(array_keys($extra), ['provenance', 'source']);
+        if ($keys === []) {
+            return null;
+        }
+        $names = implode(', ', $keys);
+
+        return "patches.lock.json has extra keys that a dependency patch must not have: $names";
     }
 
     private function line(string $package, string $description, string $url, string $problem): string

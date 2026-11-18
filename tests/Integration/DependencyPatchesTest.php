@@ -31,6 +31,31 @@ final class DependencyPatchesTest extends ComposerTestCase
         $this->assertSame('dependency:acme/module-one', $patch['extra']['provenance']);
     }
 
+    public function testADependencyCannotRunAProgramThroughExtraFreeform(): void
+    {
+        $project = $this->createProject();
+        $marker = $project->projectPath('marker.txt');
+        // The hunk context is not in lib.txt, so git apply rejects the patch.
+        $rejectedPatch = "--- a/lib.txt\n+++ b/lib.txt\n@@ -1,3 +1,3 @@\n no such line\n-line two\n+changed\n line three\n";
+        $moduleOne = Layers::moduleOne(
+            '1.0.0',
+            ['acme/lib' => [[
+                'description' => 'Change line two',
+                'url' => Layers::LOCAL_PATCH_PATH,
+                'extra' => ['freeform' => ['executable' => 'touch', 'args' => $marker]],
+            ]]],
+            [Layers::LOCAL_PATCH_PATH => $rejectedPatch],
+        );
+        Layers::addLayers($project, $moduleOne);
+        $project->setRoot(Layers::site())->withPlugin();
+
+        $result = $project->composer(['update']);
+
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('No available patcher was able to apply patch', $result);
+        $this->assertFileDoesNotExist($marker);
+    }
+
     public function testTwoDependenciesCanUseTheSamePatchFileName(): void
     {
         $project = $this->createProject();

@@ -81,6 +81,22 @@ final class RuleCheckTest extends ComposerTestCase
         }
     }
 
+    public function testALockEntryWithAnExtraProgramStopsInstallAndTheCommand(): void
+    {
+        $project = $this->installedProject();
+        $this->editLock($project, static function (array $lock): array {
+            $lock['patches']['acme/lib'][0]['extra']['freeform'] = ['executable' => 'touch', 'args' => 'marker.txt'];
+            return $lock;
+        });
+
+        foreach ([['install'], ['patches-local-check']] as $arguments) {
+            $result = $project->composer($arguments);
+
+            $this->assertComposerFailed($result);
+            $this->assertOutputContains('extra keys that a dependency patch must not have: freeform', $result);
+        }
+    }
+
     public function testAMissingCopyStopsInstallAndTheCommand(): void
     {
         $project = $this->installedProject();
