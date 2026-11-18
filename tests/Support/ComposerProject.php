@@ -77,10 +77,13 @@ final class ComposerProject
     }
 
     /**
-     * Releases a new version of an upstream package, as a copy of the installed one.
+     * Releases the next patch version of an upstream package, as a copy of the installed one.
      */
-    public function releaseUpstreamUpdate(string $name, string $version): self
+    public function releaseUpstreamUpdate(string $name): self
     {
+        $parts = explode('.', self::upstreamPackages()[$name]);
+        $parts[count($parts) - 1] = (string) ((int) end($parts) + 1);
+        $version = implode('.', $parts);
         $directory = $this->directory . '/packages/' . str_replace('/', '-', $name) . '-' . $version;
         FileSystem::remove($directory);
         FileSystem::copyDirectory(dirname(__DIR__, 2) . '/vendor/' . $name, $directory);

@@ -17,7 +17,7 @@ final class PluginUpdateTest extends ComposerTestCase
     {
         $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
         $this->assertComposerSucceeded($project->composer(['install']));
-        $project->releaseUpstreamUpdate('cweagans/composer-patches', '2.0.1')
+        $project->releaseUpstreamUpdate('cweagans/composer-patches')
             ->addPackage(new FixturePackage('acme/lib', '1.1.0', ['lib.txt' => "line one\nline two\nline three\nline four\n"]));
 
         $result = $project->composer(['update']);
