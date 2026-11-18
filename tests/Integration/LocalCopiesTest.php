@@ -108,6 +108,30 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertProjectFileSame('mine', $project, 'patches/keep.patch');
     }
 
+    public function testATargetNameThatLeavesTheCopyFolderStopsTheRun(): void
+    {
+        $project = $this->createProject();
+        Layers::addLayers($project, Layers::moduleOne(
+            '1.0.0',
+            [
+                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
+                '../../..' => ['Bad' => 'patches/outside.patch'],
+            ],
+            [
+                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
+                'patches/outside.patch' => Layers::lineTwoPatch('evil'),
+            ],
+        ));
+        $project->setRoot(Layers::site())->withPlugin();
+
+        $result = $project->composer(['install']);
+
+        $this->assertFalse($project->fileExists('patches/outside.patch'), 'A copy must not leave its folder.');
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('acme/module-one', $result);
+        $this->assertOutputContains('../../..', $result);
+    }
+
     public function testPatchesRelockWritesALockThatPointsAtCopies(): void
     {
         $project = $this->projectWithLocalAndRemotePatch();
