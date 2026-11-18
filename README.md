@@ -120,6 +120,8 @@ If different patches get the same file name in one folder, the plugin puts the f
 The plugin skips the patches for a package that is not in `composer.lock`. It makes no copy and adds no entry to `patches.lock.json`.
 composer-patches also does not apply these patches.
 
+A dependency cannot patch a Composer plugin (package types `composer-plugin` and `composer-installer`). Only the root project can.
+
 A URL of a dependency patch must have an allowed scheme. By default, these are `http` and `https`.
 To change the list, set `allowed-schemes`. Your list replaces the default:
 

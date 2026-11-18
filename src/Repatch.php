@@ -26,7 +26,7 @@ final class Repatch
      */
     private const UPSTREAM = ['cweagans/composer-patches', 'cweagans/composer-configurable-plugin'];
 
-    private const PLUGIN_TYPES = ['composer-plugin', 'composer-installer'];
+    public const PLUGIN_TYPES = ['composer-plugin', 'composer-installer'];
 
     public function __construct(
         private readonly Composer $composer,

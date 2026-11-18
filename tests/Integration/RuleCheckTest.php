@@ -97,6 +97,23 @@ final class RuleCheckTest extends ComposerTestCase
         }
     }
 
+    public function testALockEntryOfADependencyForAComposerPluginStopsInstallAndTheCommand(): void
+    {
+        $project = $this->installedProject();
+        $this->editLock($project, static function (array $lock): array {
+            $lock['patches']['cweagans/composer-patches'] = $lock['patches']['acme/lib'];
+            unset($lock['patches']['acme/lib']);
+            return $lock;
+        });
+
+        foreach ([['install'], ['patches-local-check']] as $arguments) {
+            $result = $project->composer($arguments);
+
+            $this->assertComposerFailed($result);
+            $this->assertOutputContains('a dependency must not patch a Composer plugin', $result);
+        }
+    }
+
     public function testAMissingCopyStopsInstallAndTheCommand(): void
     {
         $project = $this->installedProject();

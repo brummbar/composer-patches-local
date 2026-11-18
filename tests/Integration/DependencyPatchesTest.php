@@ -347,6 +347,46 @@ final class DependencyPatchesTest extends ComposerTestCase
         $this->assertOutputContains('brummbar/composer-patches-local is a Composer plugin', $third);
     }
 
+    public function testADependencyPatchForAComposerPluginStopsTheRun(): void
+    {
+        $pluginFiles = [
+            'src/Plugin.php' => "<?php\nnamespace Acme\\Hook;\nuse Composer\\Composer;\nuse Composer\\IO\\IOInterface;\nuse Composer\\Plugin\\PluginInterface;\n"
+                . "final class Plugin implements PluginInterface\n{\n"
+                . "    public function activate(Composer \$composer, IOInterface \$io): void {}\n"
+                . "    public function deactivate(Composer \$composer, IOInterface \$io): void {}\n"
+                . "    public function uninstall(Composer \$composer, IOInterface \$io): void {}\n}\n",
+        ];
+        $plugin = new FixturePackage(
+            'acme/hook',
+            '1.0.0',
+            $pluginFiles,
+            ['composer-plugin-api' => '^2.0'],
+            ['class' => 'Acme\\Hook\\Plugin'],
+            'composer-plugin',
+            ['psr-4' => ['Acme\\Hook\\' => 'src/']],
+        );
+        $patchFile = 'patches/hook-notes.patch';
+        $moduleOne = new FixturePackage(
+            'acme/module-one',
+            '1.0.0',
+            [$patchFile => "--- /dev/null\n+++ b/NOTES.txt\n@@ -0,0 +1 @@\n+patched by module-one\n"],
+            ['acme/hook' => '^1.0'],
+            ['patches' => ['acme/hook' => ['Add notes' => $patchFile]]],
+        );
+        $project = $this->createProject();
+        $project->addPackage($plugin)
+            ->addPackage($moduleOne)
+            ->addPackage(Layers::moduleTwo())
+            ->setRoot(Layers::site())
+            ->withPlugin();
+
+        $result = $project->composer(['update']);
+
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('acme/module-one declares patches for the Composer plugin acme/hook', $result);
+        $this->assertOutputContains('Only the root project can patch a Composer plugin', $result);
+    }
+
     /**
      * @param array<string, string> $extraRequire
      * @param array<string, string> $files

@@ -70,6 +70,7 @@ final class RuleCheck
             return ['  - patches.lock.json does not exist. Run composer install or composer update first.'];
         }
         $directory = ComposerPatches::projectDirectory($patches);
+        $pluginNames = $this->lockedPluginNames();
         $violations = [];
         /** @var array<string, list<array<string, mixed>>> $locked */
         $locked = ComposerPatches::readLock($patches)['patches'] ?? [];
@@ -82,8 +83,13 @@ final class RuleCheck
                 if ($problem === null) {
                     $problem = $this->fileProblem($directory . '/' . PatchPath::normalise($url), $patch->sha256 ?? null);
                 }
-                if ($problem === null) {
+                $provenance = $patch->extra['provenance'] ?? null;
+                $fromDependency = is_string($provenance) && str_starts_with($provenance, 'dependency:');
+                if ($problem === null && $fromDependency) {
                     $problem = $this->extraProblem($patch->extra);
+                }
+                if ($problem === null && $fromDependency) {
+                    $problem = $this->pluginProblem($package, $pluginNames);
                 }
                 if ($problem !== null) {
                     $violations[] = $this->line($package, $description, $url, $problem);
@@ -119,14 +125,37 @@ final class RuleCheck
     }
 
     /**
+     * @return list<string>
+     */
+    private function lockedPluginNames(): array
+    {
+        $locker = $this->composer->getLocker();
+        if (!$locker->isLocked()) {
+            return [];
+        }
+        $names = [];
+        foreach ($locker->getLockedRepository(true)->getPackages() as $lockedPackage) {
+            if (in_array($lockedPackage->getType(), Repatch::PLUGIN_TYPES, true)) {
+                $names[] = $lockedPackage->getName();
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * @param list<string> $pluginNames
+     */
+    private function pluginProblem(string $package, array $pluginNames): ?string
+    {
+        return in_array(strtolower($package), $pluginNames, true) ? 'a dependency must not patch a Composer plugin' : null;
+    }
+
+    /**
      * @param array<mixed> $extra
      */
     private function extraProblem(array $extra): ?string
     {
-        $provenance = $extra['provenance'] ?? null;
-        if (!is_string($provenance) || !str_starts_with($provenance, 'dependency:')) {
-            return null;
-        }
         $keys = array_diff(array_keys($extra), ['provenance', 'source']);
         if ($keys === []) {
             return null;

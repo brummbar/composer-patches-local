@@ -45,9 +45,9 @@ final class DependencyResolver extends ResolverBase
         $allowedSchemes = AllowedSchemes::fromRoot($this->composer->getPackage());
         $copies = new DependencyCopies($projectDirectory);
         $found = [];
-        $lockedNames = [];
+        $lockedTypes = [];
         foreach ($locker->getLockedRepository(true)->getPackages() as $lockedPackage) {
-            $lockedNames[$lockedPackage->getName()] = true;
+            $lockedTypes[$lockedPackage->getName()] = $lockedPackage->getType();
         }
 
         foreach ($locker->getLockedRepository()->getPackages() as $package) {
@@ -70,8 +70,18 @@ final class DependencyResolver extends ResolverBase
             }
             foreach ($grouped as $target => $targetPatches) {
                 // composer-patches applies a patch only to an installed package. Skip the patches for a package that is not in composer.lock.
-                if (!isset($lockedNames[strtolower((string) $target)])) {
+                $targetName = strtolower((string) $target);
+                if (!isset($lockedTypes[$targetName])) {
                     continue;
+                }
+                // The patched plugin code runs in Composer, so a dependency must not patch it.
+                if (in_array($lockedTypes[$targetName], Repatch::PLUGIN_TYPES, true)) {
+                    $declaring = $package->getName();
+                    throw new \RuntimeException(
+                        "composer-patches-local: the package $declaring declares patches for the Composer plugin $target. Only the root project can patch a Composer plugin.\n"
+                        . "Add $declaring to \"ignore-dependency-patches\" in extra.composer-patches of the root composer.json.\n"
+                        . "If you need its patches, copy them to patches/ and declare them in extra.patches of the root composer.json."
+                    );
                 }
                 foreach ($targetPatches as $patch) {
                     $declared = $patch->url;
