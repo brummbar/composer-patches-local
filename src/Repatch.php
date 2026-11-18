@@ -24,7 +24,7 @@ final class Repatch
      * Because of this, the plugin never reinstalls them.
      * See Patches::patchPackage() in cweagans/composer-patches.
      */
-    private const UPSTREAM = ['cweagans/composer-patches', 'cweagans/composer-configurable-plugin'];
+    public const UPSTREAM = ['cweagans/composer-patches', 'cweagans/composer-configurable-plugin'];
 
     public const PLUGIN_TYPES = ['composer-plugin', 'composer-installer'];
 

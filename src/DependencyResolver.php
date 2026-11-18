@@ -69,9 +69,10 @@ final class DependencyResolver extends ResolverBase
                 }
             }
             foreach ($grouped as $target => $targetPatches) {
-                // composer-patches applies a patch only to an installed package. Skip the patches for a package that is not in composer.lock.
+                // composer-patches applies a patch only to a package in composer.lock, and never to its own two packages.
+                // Thus, for these targets, the plugin makes no copy and no lock entry.
                 $targetName = strtolower((string) $target);
-                if (!isset($lockedTypes[$targetName])) {
+                if (!isset($lockedTypes[$targetName]) || in_array($targetName, Repatch::UPSTREAM, true)) {
                     continue;
                 }
                 // The patched plugin code runs in Composer, so a dependency must not patch it.

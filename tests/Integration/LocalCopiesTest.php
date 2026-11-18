@@ -188,6 +188,41 @@ final class LocalCopiesTest extends ComposerTestCase
         );
     }
 
+    public function testADependencyPatchForAPackageThatComposerPatchesNeverPatchesIsSkipped(): void
+    {
+        $target = 'cweagans/composer-configurable-plugin';
+        $project = $this->layeredProject(Layers::moduleOne(
+            '1.0.0',
+            [
+                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
+                $target => ['Change something' => 'patches/configurable.patch'],
+            ],
+            [
+                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
+                'patches/configurable.patch' => Layers::lineTwoPatch('configurable'),
+            ],
+        ));
+
+        $result = $project->composer(['update']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertArrayNotHasKey(
+            $target,
+            $project->readPatchesLock()['patches'],
+            'The patches lock must not list a package that composer-patches never patches.',
+        );
+        $this->assertSame(
+            [],
+            $project->tree('patches/dependencies/acme/module-one/' . $target),
+            'The plugin must not copy a patch for a package that composer-patches never patches.',
+        );
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+    }
+
     #[DataProvider('providePatchPathsOutsideThePackage')]
     public function testAPatchPathOutsideThePackageStopsTheRun(string $declaredPath): void
     {
