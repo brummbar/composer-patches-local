@@ -319,6 +319,19 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertSame(['line-two.patch'], array_keys($project->tree(self::FOLDER)));
     }
 
+    public function testAnAllowedSchemeWithANewlineAtTheEndStopsTheRun(): void
+    {
+        $project = $this->layeredProject(
+            Layers::moduleOneWithLocalPatch(),
+            Layers::site([], ['composer-patches-local' => ['allowed-schemes' => ["https\n"]]]),
+        );
+
+        $result = $project->composer(['install']);
+
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('must be a list of URL schemes', $result);
+    }
+
     public function testPatchesRelockWritesALockThatPointsAtCopies(): void
     {
         $project = $this->projectWithLocalAndRemotePatch();
