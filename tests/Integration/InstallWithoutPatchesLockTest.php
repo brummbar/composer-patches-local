@@ -6,6 +6,7 @@ namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
+use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 
 /**
@@ -38,7 +39,7 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
         $project = $this->installedProject();
         $lock = $project->readFile('patches.lock.json');
         unlink($project->projectPath('patches.lock.json'));
-        $this->removeTree($project->projectPath('patches'));
+        FileSystem::remove($project->projectPath('patches'));
 
         $result = $project->composer(['install']);
 
@@ -93,10 +94,5 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
         $this->assertProjectFileSame(self::PATCHED, $project, 'vendor/acme/lib/lib.txt');
 
         return $project;
-    }
-
-    private function removeTree(string $path): void
-    {
-        \Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem::remove($path);
     }
 }
