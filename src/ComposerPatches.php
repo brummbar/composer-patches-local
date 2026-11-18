@@ -69,9 +69,6 @@ final class ComposerPatches
     }
 
     /**
-     * Returns the patches that composer-patches loaded last, or null before the first load.
-     */
-    /**
      * Returns the content of patches.lock.json.
      *
      * @param Patches $patches
@@ -85,6 +82,8 @@ final class ComposerPatches
     }
 
     /**
+     * Returns the patches that composer-patches loaded last, or null before the first load.
+     *
      * @param Patches $patches
      */
     public static function loadedPatches(PluginInterface $patches): ?PatchCollection
