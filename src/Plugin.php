@@ -111,7 +111,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         $this->skippedPackages = $names;
     }
 
-    public function checkConfiguration(): void
+    private function checkConfiguration(): void
     {
         ComposerPatches::assertConfigured(ComposerPatches::find($this->composer));
     }
