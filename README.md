@@ -112,6 +112,9 @@ patches/
 
 If different patches get the same file name in one folder, the plugin puts the first 8 characters of their sha256 hash in front of each name, for example `1a2b3c4d-fix.patch`.
 
+The plugin skips the patches for a package that is not in `composer.lock`. It makes no copy and adds no entry to `patches.lock.json`.
+composer-patches also does not apply these patches.
+
 ## Daily use
 
 - After `composer update`, commit `composer.lock`, `patches.lock.json` and `patches/` together.

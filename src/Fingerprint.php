@@ -22,6 +22,7 @@ final class Fingerprint
         $patches = ComposerPatches::find($composer);
         $file = $patches->getConfig('patches-file');
         $packages = [];
+        $lockedNames = [];
         $locker = $composer->getLocker();
         if ($locker->isLocked()) {
             foreach ($locker->getLockedRepository()->getPackages() as $package) {
@@ -37,14 +38,20 @@ final class Fingerprint
                     'patches' => $extra['patches'],
                 ];
             }
+            foreach ($locker->getLockedRepository(true)->getPackages() as $package) {
+                $lockedNames[$package->getName()] = true;
+            }
         }
         ksort($packages);
+        $lockedNames = array_keys($lockedNames);
+        sort($lockedNames);
 
         $inputs = [
             'root-patches' => $composer->getPackage()->getExtra()['patches'] ?? null,
             'patches-file' => is_string($file) && is_file($file) ? (string) file_get_contents($file) : null,
             'ignore-dependency-patches' => $patches->getConfig('ignore-dependency-patches'),
             'packages' => array_values($packages),
+            'locked-packages' => $lockedNames,
         ];
 
         return hash('sha256', json_encode($inputs, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));

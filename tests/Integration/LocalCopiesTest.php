@@ -132,6 +132,42 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertOutputContains('../../..', $result);
     }
 
+    public function testAPatchForAPackageThatIsNotInTheProjectIsSkipped(): void
+    {
+        $project = $this->createProject();
+        Layers::addLayers($project, Layers::moduleOne(
+            '1.0.0',
+            [
+                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
+                'acme/absent' => ['Change something' => 'patches/absent.patch'],
+            ],
+            [
+                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
+                'patches/absent.patch' => Layers::lineTwoPatch('absent'),
+            ],
+        ));
+        $project->setRoot(Layers::site())->withPlugin();
+
+        $result = $project->composer(['install']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertSame(
+            [],
+            $project->tree('patches/dependencies/acme/module-one/acme/absent'),
+            'The plugin must not copy a patch for a package that is not in the project.',
+        );
+        $this->assertArrayNotHasKey(
+            'acme/absent',
+            $project->readPatchesLock()['patches'],
+            'The patches lock must not list a package that is not in the project.',
+        );
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+    }
+
     public function testPatchesRelockWritesALockThatPointsAtCopies(): void
     {
         $project = $this->projectWithLocalAndRemotePatch();

@@ -36,6 +36,10 @@ final class DependencyResolver extends ResolverBase
         $projectDirectory = (new Filesystem())->normalizePath(ComposerPatches::projectDirectory($patches));
         $copies = new DependencyCopies($projectDirectory);
         $found = [];
+        $lockedNames = [];
+        foreach ($locker->getLockedRepository(true)->getPackages() as $lockedPackage) {
+            $lockedNames[$lockedPackage->getName()] = true;
+        }
 
         foreach ($locker->getLockedRepository()->getPackages() as $package) {
             $extra = $package->getExtra();
@@ -55,7 +59,11 @@ final class DependencyResolver extends ResolverBase
                     );
                 }
             }
-            foreach ($grouped as $targetPatches) {
+            foreach ($grouped as $target => $targetPatches) {
+                // composer-patches applies a patch only to an installed package. Skip the patches for a package that is not in composer.lock.
+                if (!isset($lockedNames[strtolower((string) $target)])) {
+                    continue;
+                }
                 foreach ($targetPatches as $patch) {
                     $declared = $patch->url;
                     if ($this->isLocal($declared)) {
