@@ -74,6 +74,37 @@ final class LocalCopiesTest extends ComposerTestCase
         );
     }
 
+    public function testTwoPatchNamesThatDifferOnlyInCaseGetAHashPrefix(): void
+    {
+        $project = $this->createProject();
+        Layers::addLayers($project, Layers::moduleOne(
+            '1.0.0',
+            ['acme/lib' => [
+                'Change line one' => 'patches/Fix.patch',
+                'Change line three' => 'http://patches/b/fix.patch',
+            ]],
+            ['patches/Fix.patch' => Layers::lineOnePatch('module-one')],
+        ));
+        $project->setRoot(Layers::site())->withPlugin();
+
+        $this->assertComposerSucceeded($project->composer(['install']));
+
+        $prefixUpper = substr(hash('sha256', Layers::lineOnePatch('module-one')), 0, 8);
+        $prefixLower = substr(hash('sha256', (string) file_get_contents(__DIR__ . '/../fixtures/remote-patches/b/fix.patch')), 0, 8);
+        $upper = "$prefixUpper-Fix.patch";
+        $lower = "$prefixLower-fix.patch";
+        $names = [$upper, $lower];
+        sort($names);
+        $this->assertSame($names, array_keys($project->tree(self::FOLDER)));
+        $urls = array_column($project->readPatchesLock()['patches']['acme/lib'], 'url');
+        $this->assertSame([self::FOLDER . "/$upper", self::FOLDER . "/$lower"], $urls);
+        $this->assertProjectFileSame(
+            "line one patched by module-one\nline two\nline three patched by b\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+    }
+
     public function testACopyAndItsEmptyFoldersAreDeletedWhenTheDependencyDropsThePatch(): void
     {
         $project = $this->createProject();

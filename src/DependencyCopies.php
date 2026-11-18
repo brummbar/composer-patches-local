@@ -89,7 +89,8 @@ final class DependencyCopies
      */
     private function key(array $entry): string
     {
-        return $this->folder($entry) . '/' . $entry['name'];
+        // On macOS and Windows, two names that differ only in case point to the same file.
+        return strtolower($this->folder($entry) . '/' . $entry['name']);
     }
 
     private function write(string $file, string $content): void
