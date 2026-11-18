@@ -343,20 +343,4 @@ final class LocalCopiesTest extends ComposerTestCase
 
         return $project;
     }
-
-    /**
-     * Returns environment variables that send HTTP traffic to a closed local port.
-     *
-     * @return array<string, string>
-     */
-    private function unreachableNetwork(): array
-    {
-        $server = stream_socket_server('tcp://127.0.0.1:0');
-        $this->assertNotFalse($server);
-        $port = (int) substr((string) strrchr((string) stream_socket_get_name($server, false), ':'), 1);
-        fclose($server);
-        $proxy = "http://127.0.0.1:$port";
-
-        return ['http_proxy' => $proxy, 'HTTP_PROXY' => $proxy, 'no_proxy' => '', 'NO_PROXY' => ''];
-    }
 }
