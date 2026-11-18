@@ -28,6 +28,9 @@ final class ComposerProject
     /** @var array<string, string> Package name => directory. */
     private array $packageDirectories = [];
 
+    /** @var array<string, array{directory: string, version: string}> Released updates of upstream packages. */
+    private array $upstreamUpdates = [];
+
     private bool $withPlugin = false;
 
     private bool $disableDependencyResolver = false;
@@ -70,6 +73,18 @@ final class ComposerProject
         if ($package->type === 'composer-plugin') {
             $this->pluginPackages[$package->name] = $package->name;
         }
+        return $this;
+    }
+
+    /**
+     * Releases a new version of an upstream package, as a copy of the installed one.
+     */
+    public function releaseUpstreamUpdate(string $name, string $version): self
+    {
+        $directory = $this->directory . '/packages/' . str_replace('/', '-', $name) . '-' . $version;
+        FileSystem::remove($directory);
+        FileSystem::copyDirectory(dirname(__DIR__, 2) . '/vendor/' . $name, $directory);
+        $this->upstreamUpdates[$name] = ['directory' => $directory, 'version' => $version];
         return $this;
     }
 
@@ -198,6 +213,7 @@ final class ComposerProject
         $copy = new self();
         $copy->root = $this->root;
         $copy->packageDirectories = $this->packageDirectories;
+        $copy->upstreamUpdates = $this->upstreamUpdates;
         $copy->withPlugin = $this->withPlugin;
         $copy->disableDependencyResolver = $this->disableDependencyResolver;
         $copy->pluginPackages = $this->pluginPackages;
@@ -221,6 +237,10 @@ final class ComposerProject
     private function writeRootComposerJson(): void
     {
         $repositories = [['packagist.org' => false]];
+        // Composer ignores a package in a later repository when an earlier one offers it.
+        foreach ($this->upstreamUpdates as $name => $update) {
+            $repositories[] = self::pathRepository($name, $update['directory'], $update['version']);
+        }
         foreach (self::upstreamPackages() as $name => $version) {
             $repositories[] = self::pathRepository($name, dirname(__DIR__, 2) . '/vendor/' . $name, $version);
         }

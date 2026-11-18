@@ -5,20 +5,32 @@ declare(strict_types=1);
 namespace Brummbar\ComposerPatchesLocal;
 
 use Composer\Composer;
+use Composer\Plugin\PluginInterface;
 use cweagans\Composer\PatchCollection;
 use cweagans\Composer\Plugin\Patches;
 
 /**
  * Gives access to the composer-patches plugin, its settings and its lock file.
+ *
+ * When Composer updates composer-patches during a run, it loads the new version under a different class name.
+ * That class has the same methods as Patches, but it does not extend Patches.
+ * Because of this, the PHP type of the plugin object is PluginInterface in all methods of this class.
+ * The phpdoc type is Patches. It tells PHPStan which methods the object has.
  */
 final class ComposerPatches
 {
     private const DEPENDENCIES_RESOLVER = '\\cweagans\\Composer\\Resolver\\Dependencies';
 
-    public static function find(Composer $composer): Patches
+    /**
+     * Returns the plugin object of composer-patches.
+     *
+     * @return Patches
+     */
+    public static function find(Composer $composer): PluginInterface
     {
         foreach ($composer->getPluginManager()->getPlugins() as $plugin) {
-            if ($plugin instanceof Patches) {
+            if ($plugin instanceof Patches || str_starts_with($plugin::class, Patches::class . '_composer_tmp')) {
+                /** @var Patches $plugin */
                 return $plugin;
             }
         }
@@ -27,16 +39,20 @@ final class ComposerPatches
 
     /**
      * Returns the folder of the root project.
+     *
+     * @param Patches $patches
      */
-    public static function projectDirectory(Patches $patches): string
+    public static function projectDirectory(PluginInterface $patches): string
     {
         return dirname($patches->getLockFile()->getPath());
     }
 
     /**
      * Stops with an error when the root project does not turn off the core dependency resolver.
+     *
+     * @param Patches $patches
      */
-    public static function assertConfigured(Patches $patches): void
+    public static function assertConfigured(PluginInterface $patches): void
     {
         $disabled = $patches->getConfig('disable-resolvers');
         if (is_array($disabled) && in_array(self::DEPENDENCIES_RESOLVER, $disabled, true)) {
@@ -58,16 +74,20 @@ final class ComposerPatches
     /**
      * Returns the content of patches.lock.json.
      *
+     * @param Patches $patches
      * @return array<string|int, mixed>
      */
-    public static function readLock(Patches $patches): array
+    public static function readLock(PluginInterface $patches): array
     {
         $data = $patches->getLockFile()->read();
 
         return is_array($data) ? $data : [];
     }
 
-    public static function loadedPatches(Patches $patches): ?PatchCollection
+    /**
+     * @param Patches $patches
+     */
+    public static function loadedPatches(PluginInterface $patches): ?PatchCollection
     {
         try {
             return $patches->getPatchCollection();

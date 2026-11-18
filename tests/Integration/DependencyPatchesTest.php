@@ -124,6 +124,26 @@ final class DependencyPatchesTest extends ComposerTestCase
         );
     }
 
+    public function testAnUpdateOfOnlyTheTargetAppliesTheDependencyPatchInTheSameRun(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
+        $this->assertComposerSucceeded($project->composer(['install']));
+        $lock = $project->readFile('patches.lock.json');
+        $project->addPackage(new FixturePackage('acme/lib', '1.1.0', ['lib.txt' => "line one\nline two\nline three\nline four\n"]));
+
+        $result = $project->composer(['update', 'acme/lib']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertOutputContains('Upgrading acme/lib', $result);
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\nline four\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+        $this->assertStringNotContainsString('reinstalling', $result->output, $this->describe('The plugin must not reinstall.', $result));
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+    }
+
     public function testPatchesWithTheSameContentFromTwoLayersApplyOnce(): void
     {
         $remotePatch = (string) file_get_contents(__DIR__ . '/../fixtures/remote-patches/lib-line-two.patch');
