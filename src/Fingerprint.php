@@ -64,12 +64,12 @@ final class Fingerprint
      */
     public static function isCurrent(Composer $composer): bool
     {
-        $lockFile = ComposerPatches::find($composer)->getLockFile();
-        if (!$lockFile->exists()) {
+        $patches = ComposerPatches::find($composer);
+        if (!$patches->getLockFile()->exists()) {
             return false;
         }
         try {
-            $stored = ComposerPatches::readLock(ComposerPatches::find($composer))[Plugin::KEY] ?? null;
+            $stored = ComposerPatches::readLock($patches)[Plugin::KEY] ?? null;
         } catch (\Throwable) {
             return false;
         }
@@ -79,10 +79,10 @@ final class Fingerprint
 
     public static function write(Composer $composer): void
     {
-        $lockFile = ComposerPatches::find($composer)->getLockFile();
-        $data = ComposerPatches::readLock(ComposerPatches::find($composer));
+        $patches = ComposerPatches::find($composer);
+        $data = ComposerPatches::readLock($patches);
         $data[Plugin::KEY] = self::compute($composer);
         ksort($data);
-        $lockFile->write($data);
+        $patches->getLockFile()->write($data);
     }
 }

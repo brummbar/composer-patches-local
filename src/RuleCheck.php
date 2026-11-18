@@ -65,14 +65,14 @@ final class RuleCheck
      */
     public function lockViolations(): array
     {
-        $lockFile = ComposerPatches::find($this->composer)->getLockFile();
-        if (!$lockFile->exists()) {
+        $patches = ComposerPatches::find($this->composer);
+        if (!$patches->getLockFile()->exists()) {
             return ['  - patches.lock.json does not exist. Run composer install or composer update first.'];
         }
-        $directory = dirname($lockFile->getPath());
+        $directory = ComposerPatches::projectDirectory($patches);
         $violations = [];
         /** @var array<string, list<array<string, mixed>>> $locked */
-        $locked = ComposerPatches::readLock(ComposerPatches::find($this->composer))['patches'] ?? [];
+        $locked = ComposerPatches::readLock($patches)['patches'] ?? [];
         foreach ($locked as $package => $list) {
             foreach ($list as $entry) {
                 $patch = Patch::fromJson($entry + ['package' => $package]);
