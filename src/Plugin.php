@@ -23,7 +23,7 @@ use cweagans\Composer\Capability\Resolver\ResolverProvider;
 /**
  * The Composer plugin. It connects the parts of composer-patches-local to Composer events.
  */
-final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
+final class Plugin implements PluginInterface, EventSubscriberInterface, Capable, SkippedPackages
 {
     public const NAME = 'brummbar/composer-patches-local';
 

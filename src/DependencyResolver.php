@@ -31,7 +31,7 @@ final class DependencyResolver extends ResolverBase
         $this->io->write('  - <info>Resolving patches from dependencies.</info>');
         $ignored = $patches->getConfig('ignore-dependency-patches');
         $ignored = is_array($ignored) ? $ignored : [];
-        $skipped = $this->plugin instanceof Plugin ? $this->plugin->skippedPackages() : [];
+        $skipped = $this->plugin instanceof SkippedPackages ? $this->plugin->skippedPackages() : [];
         $projectDirectory = (new Filesystem())->normalizePath(ComposerPatches::projectDirectory($patches));
         $copies = new DependencyCopies($projectDirectory);
         $found = [];

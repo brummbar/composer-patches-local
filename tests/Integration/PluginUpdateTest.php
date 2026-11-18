@@ -32,6 +32,24 @@ final class PluginUpdateTest extends ComposerTestCase
         );
     }
 
+    public function testAnUpdateOfThisPluginInTheRunDoesNotStopTheRun(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
+        $this->assertComposerSucceeded($project->composer(['install']));
+        $project->releasePluginUpdate('1.0.1')
+            ->addPackage(new FixturePackage('acme/lib', '1.1.0', ['lib.txt' => "line one\nline two\nline three\nline four\n"]));
+
+        $result = $project->composer(['update']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertOutputContains('Upgrading brummbar/composer-patches-local', $result);
+        $this->assertProjectFileSame(
+            "line one\nline two patched by module-one\nline three\nline four\n",
+            $project,
+            'vendor/acme/lib/lib.txt',
+        );
+    }
+
     private function layeredProject(FixturePackage $moduleOne): ComposerProject
     {
         $project = $this->createProject();

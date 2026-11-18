@@ -28,7 +28,7 @@ final class ComposerProject
     /** @var array<string, string> Package name => directory. */
     private array $packageDirectories = [];
 
-    /** @var array<string, array{directory: string, version: string}> Released updates of upstream packages. */
+    /** @var array<string, array{directory: string, version: string}> Released updates of upstream packages and of this plugin. */
     private array $upstreamUpdates = [];
 
     private bool $withPlugin = false;
@@ -85,6 +85,15 @@ final class ComposerProject
         FileSystem::remove($directory);
         FileSystem::copyDirectory(dirname(__DIR__, 2) . '/vendor/' . $name, $directory);
         $this->upstreamUpdates[$name] = ['directory' => $directory, 'version' => $version];
+        return $this;
+    }
+
+    /**
+     * Releases a new version of this plugin, with the same code.
+     */
+    public function releasePluginUpdate(string $version): self
+    {
+        $this->upstreamUpdates[PluginCopy::NAME] = ['directory' => PluginCopy::path(), 'version' => $version];
         return $this;
     }
 

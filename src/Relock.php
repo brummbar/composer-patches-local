@@ -15,7 +15,7 @@ final class Relock
 {
     public function __construct(
         private readonly Composer $composer,
-        private readonly Plugin $plugin,
+        private readonly SkippedPackages $plugin,
     ) {
     }
 

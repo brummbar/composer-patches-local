@@ -6,6 +6,7 @@ namespace Brummbar\ComposerPatchesLocal;
 
 use Composer\Composer;
 use Composer\IO\IOInterface;
+use Composer\Plugin\PluginInterface;
 use cweagans\Composer\Capability\Resolver\ResolverProvider;
 
 /**
@@ -17,10 +18,10 @@ final class LocalResolverProvider implements ResolverProvider
 
     private readonly IOInterface $io;
 
-    private readonly Plugin $plugin;
+    private readonly PluginInterface $plugin;
 
     /**
-     * @param array{composer: Composer, io: IOInterface, plugin: Plugin} $arguments
+     * @param array{composer: Composer, io: IOInterface, plugin: PluginInterface} $arguments
      */
     public function __construct(array $arguments)
     {
