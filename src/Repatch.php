@@ -19,13 +19,6 @@ use cweagans\Composer\Patch;
  */
 final class Repatch
 {
-    /**
-     * composer-patches never applies patches to these packages.
-     * Because of this, the plugin never reinstalls them.
-     * See Patches::patchPackage() in cweagans/composer-patches.
-     */
-    public const UPSTREAM = ['cweagans/composer-patches', 'cweagans/composer-configurable-plugin'];
-
     public const PLUGIN_TYPES = ['composer-plugin', 'composer-installer'];
 
     public function __construct(
@@ -49,7 +42,7 @@ final class Repatch
             return;
         }
 
-        $hash = $this->patchHash($this->appliedPatches($package->getName()));
+        $hash = $this->patchHash($this->patchesFor($package->getName()));
         foreach ($event->getLocalRepo()->getPackages() as $installed) {
             if ($installed instanceof Package && $installed->getName() === $package->getName()) {
                 $extra = $installed->getExtra();
@@ -67,20 +60,13 @@ final class Repatch
      */
     public function run(bool $devMode): void
     {
-        $patches = ComposerPatches::find($this->composer);
-        $patches->loadLockedPatches();
-        $collection = ComposerPatches::loadedPatches($patches);
+        ComposerPatches::find($this->composer)->loadLockedPatches();
 
         $outdated = [];
         $localRepo = $this->composer->getRepositoryManager()->getLocalRepository();
         foreach ($localRepo->getCanonicalPackages() as $package) {
             $name = $package->getName();
-            if (in_array($name, self::UPSTREAM, true)) {
-                continue;
-            }
-            /** @var list<Patch> $packagePatches */
-            $packagePatches = $collection?->getPatchesForPackage($name) ?? [];
-            $expected = $this->patchHash($packagePatches);
+            $expected = $this->patchHash($this->patchesFor($name));
             if (($package->getExtra()[Plugin::KEY] ?? null) === $expected) {
                 continue;
             }
@@ -102,19 +88,22 @@ final class Repatch
     }
 
     /**
+     * Returns the loaded patches of a package.
+     * For the packages of composer-patches, it returns [].
+     *
      * @return list<Patch>
      */
-    private function appliedPatches(string $name): array
+    private function patchesFor(string $name): array
     {
-        if (in_array($name, self::UPSTREAM, true)) {
+        if (in_array($name, ComposerPatches::OWN_PACKAGES, true)) {
             return [];
         }
         $collection = ComposerPatches::loadedPatches(ComposerPatches::find($this->composer));
 
-        /** @var list<Patch> $applied */
-        $applied = $collection?->getPatchesForPackage($name) ?? [];
+        /** @var list<Patch> $patches */
+        $patches = $collection?->getPatchesForPackage($name) ?? [];
 
-        return $applied;
+        return $patches;
     }
 
     /**

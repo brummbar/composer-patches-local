@@ -19,6 +19,12 @@ use cweagans\Composer\Plugin\Patches;
  */
 final class ComposerPatches
 {
+    /**
+     * composer-patches never applies patches to these packages.
+     * See Patches::patchPackage() in cweagans/composer-patches.
+     */
+    public const OWN_PACKAGES = ['cweagans/composer-patches', 'cweagans/composer-configurable-plugin'];
+
     private const DEPENDENCIES_RESOLVER = '\\cweagans\\Composer\\Resolver\\Dependencies';
 
     /**
