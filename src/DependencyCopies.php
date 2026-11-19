@@ -50,17 +50,12 @@ final class DependencyCopies
     public function publish(): void
     {
         $hashes = [];
-        $names = [];
         foreach ($this->entries as $entry) {
-            $key = $this->key($entry);
-            $hashes[$key][$entry['sha256']] = true;
-            $names[$key][$entry['sha256']] ??= $entry['name'];
+            $hashes[$this->key($entry)][$entry['sha256']] = true;
         }
         foreach ($this->entries as $entry) {
-            $key = $this->key($entry);
-            $name = (count($hashes[$key]) > 1 ? substr($entry['sha256'], 0, 8) . '-' : '') . $names[$key][$entry['sha256']];
+            $name = (count($hashes[$this->key($entry)]) > 1 ? substr($entry['sha256'], 0, 8) . '-' : '') . $entry['name'];
             $path = $this->folder($entry) . '/' . $name;
-            $this->removeCaseVariants($this->projectDirectory . '/' . $path);
             $this->write($this->projectDirectory . '/' . $path, $entry['content']);
 
             $patch = $entry['patch'];
@@ -76,7 +71,8 @@ final class DependencyCopies
 
     private static function cleanName(string $name): string
     {
-        $clean = preg_replace('/[^A-Za-z0-9._-]/u', '-', $name) ?? preg_replace('/[^A-Za-z0-9._-]/', '-', $name) ?? '';
+        // Git on macOS and Windows does not record a change to a file name that is only in case.
+        $clean = strtolower(preg_replace('/[^A-Za-z0-9._-]/u', '-', $name) ?? preg_replace('/[^A-Za-z0-9._-]/', '-', $name) ?? '');
         if ($clean === '') {
             return 'patch.patch';
         }
@@ -97,23 +93,7 @@ final class DependencyCopies
      */
     private function key(array $entry): string
     {
-        // On macOS and Windows, two names that differ only in case point to the same file. Entries with one key and the same content get one name.
-        return strtolower($this->folder($entry) . '/' . $entry['name']);
-    }
-
-    /**
-     * Deletes the files that have the name of the copy, except for the case.
-     */
-    private function removeCaseVariants(string $file): void
-    {
-        $directory = dirname($file);
-        $names = is_dir($directory) ? scandir($directory) : false;
-        foreach ($names ?: [] as $name) {
-            if ($name !== basename($file) && strcasecmp($name, basename($file)) === 0 && is_file($directory . '/' . $name)) {
-                // A file system that ignores case would keep the old name when it writes the new copy.
-                unlink($directory . '/' . $name);
-            }
-        }
+        return $this->folder($entry) . '/' . $entry['name'];
     }
 
     private function write(string $file, string $content): void

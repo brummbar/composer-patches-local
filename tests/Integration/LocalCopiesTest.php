@@ -87,7 +87,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
         $prefixUpper = substr(hash('sha256', Layers::lineOnePatch('module-one')), 0, 8);
         $prefixLower = substr(hash('sha256', (string) file_get_contents(__DIR__ . '/../fixtures/remote-patches/b/fix.patch')), 0, 8);
-        $upper = "$prefixUpper-Fix.patch";
+        $upper = "$prefixUpper-fix.patch";
         $lower = "$prefixLower-fix.patch";
         $names = [$upper, $lower];
         sort($names);
