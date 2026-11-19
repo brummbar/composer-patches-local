@@ -21,7 +21,7 @@ On a fresh install, composer-patches starts before this plugin. It creates patch
 Its dependency resolver fails on a local patch of a dependency.
 
 - The root project must turn off that resolver with `disable-resolvers`. The plugin checks the setting and shows the JSON to add.
-- The plugin writes a fingerprint into patches.lock.json. An install with a missing or different fingerprint rebuilds the lock.
+- The plugin writes a fingerprint into patches.lock.json. An install with a missing or different fingerprint rebuilds the lock. With `--no-dev`, the install stops with an error instead.
 
 ### The Locker drops unknown keys
 
@@ -29,7 +29,7 @@ Its dependency resolver fails on a local patch of a dependency.
 There is no event after `composer patches-relock`.
 
 - The plugin writes its fingerprint after its own call of `setLockData()`.
-- After `patches-relock`, the fingerprint is gone. The next install rebuilds the lock.
+- After `patches-relock`, the fingerprint is gone. The next install rebuilds the lock, or stops with an error with `--no-dev`.
 
 ### `getPatchCollection()` before the first load
 
