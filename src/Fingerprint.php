@@ -13,9 +13,36 @@ use Composer\Package\AliasPackage;
 final class Fingerprint
 {
     /**
+     * Tells if patches.lock.json has a fingerprint that equals the one of the current inputs.
+     */
+    public static function isCurrent(Composer $composer): bool
+    {
+        $patches = ComposerPatches::find($composer);
+        if (!$patches->getLockFile()->exists()) {
+            return false;
+        }
+        try {
+            $stored = ComposerPatches::readLock($patches)[Plugin::KEY] ?? null;
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return is_string($stored) && hash_equals($stored, self::compute($composer));
+    }
+
+    public static function write(Composer $composer): void
+    {
+        $patches = ComposerPatches::find($composer);
+        $data = ComposerPatches::readLock($patches);
+        $data[Plugin::KEY] = self::compute($composer);
+        ksort($data);
+        $patches->getLockFile()->write($data);
+    }
+
+    /**
      * Returns the hash of the patch inputs of the root project and of the locked packages.
      */
-    public static function compute(Composer $composer): string
+    private static function compute(Composer $composer): string
     {
         $patches = ComposerPatches::find($composer);
         $file = $patches->getConfig('patches-file');
@@ -65,32 +92,5 @@ final class Fingerprint
         ];
 
         return hash('sha256', json_encode($inputs, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-    }
-
-    /**
-     * Tells if patches.lock.json has a fingerprint that equals the one of the current inputs.
-     */
-    public static function isCurrent(Composer $composer): bool
-    {
-        $patches = ComposerPatches::find($composer);
-        if (!$patches->getLockFile()->exists()) {
-            return false;
-        }
-        try {
-            $stored = ComposerPatches::readLock($patches)[Plugin::KEY] ?? null;
-        } catch (\Throwable) {
-            return false;
-        }
-
-        return is_string($stored) && hash_equals($stored, self::compute($composer));
-    }
-
-    public static function write(Composer $composer): void
-    {
-        $patches = ComposerPatches::find($composer);
-        $data = ComposerPatches::readLock($patches);
-        $data[Plugin::KEY] = self::compute($composer);
-        ksort($data);
-        $patches->getLockFile()->write($data);
     }
 }

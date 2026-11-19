@@ -86,10 +86,8 @@ final class RuleCheck
                 $provenance = $patch->extra['provenance'] ?? null;
                 $fromDependency = is_string($provenance) && str_starts_with($provenance, 'dependency:');
                 if ($problem === null && $fromDependency) {
-                    $problem = $this->extraProblem($patch->extra);
-                }
-                if ($problem === null && $fromDependency) {
-                    $problem = $this->pluginProblem($package, $pluginNames);
+                    $problem = $this->extraProblem($patch->extra)
+                        ?? $this->pluginProblem($package, $pluginNames);
                 }
                 if ($problem !== null) {
                     $violations[] = $this->line($package, $description, $url, $problem);

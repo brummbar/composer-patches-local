@@ -43,7 +43,6 @@ final class DependencyResolver extends ResolverBase
         $projectDirectory = (new Filesystem())->normalizePath(ComposerPatches::projectDirectory($patches));
         $allowedSchemes = AllowedSchemes::fromRoot($this->composer->getPackage());
         $copies = new DependencyCopies($projectDirectory);
-        $found = [];
         $lockedTypes = [];
         foreach ($locker->getLockedRepository(true)->getPackages() as $lockedPackage) {
             $lockedTypes[$lockedPackage->getName()] = $lockedPackage->getType();
@@ -61,7 +60,7 @@ final class DependencyResolver extends ResolverBase
             foreach ($grouped as $target => $targetPatches) {
                 // composer-patches applies a patch only to a package in composer.lock, and never to its own two packages.
                 // It finds a patch only by the exact package name, which is lowercase.
-                // Thus, for these targets, the plugin makes no copy and no lock entry.
+                // For these targets, the plugin makes no copy and no lock entry.
                 if ($targetPatches === [] || !isset($lockedTypes[$target]) || in_array($target, ComposerPatches::OWN_PACKAGES, true)) {
                     continue;
                 }
@@ -98,21 +97,22 @@ final class DependencyResolver extends ResolverBase
                         unset($patch->localPath);
                         $name = DependencyCopies::urlName($declared);
                     }
-                    if (isset($patch->sha256) && $patch->sha256 !== hash('sha256', $content)) {
+                    $sha256 = hash('sha256', $content);
+                    if (isset($patch->sha256) && $patch->sha256 !== $sha256) {
                         throw new \RuntimeException("The patch $declared of {$package->getName()} does not match its sha256.");
                     }
-                    $patch->sha256 = hash('sha256', $content);
+                    $patch->sha256 = $sha256;
                     if ($remote) {
                         self::$knownHashes[$declared] = $patch->sha256;
                     }
                     $copies->add($patch, $package->getName(), $name, $content);
-                    $found[] = $patch;
                 }
             }
         }
 
-        $copies->publish();
-        foreach ($found as $patch) {
+        // PatchCollection::addPatch() keeps only one patch for each URL or sha256 of a package.
+        // Add the patches after publish() points their URLs at the copies.
+        foreach ($copies->publish() as $patch) {
             $collection->addPatch($patch);
         }
     }

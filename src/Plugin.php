@@ -220,7 +220,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         (new Relock($this->composer, $this))->run([], true);
         // CopyCleanup must keep only the copies that are in patches.lock.json.
         // When two patches have the same content, the lock keeps only one of them.
-        // Thus, read the lock and not the patches that the resolvers found.
+        // Read the lock and not the patches that the resolvers found.
         $referenced = [];
         $lockedPatches = ComposerPatches::readLock($patches)['patches'] ?? [];
         /** @var array<string, list<array<mixed>>> $lockedPatches */

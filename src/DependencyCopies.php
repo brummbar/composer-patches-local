@@ -46,15 +46,22 @@ final class DependencyCopies
 
     /**
      * Writes the copies that changed, and points each patch at its copy.
+     * Returns all the patches.
+     *
+     * @return list<Patch>
      */
-    public function publish(): void
+    public function publish(): array
     {
         $hashes = [];
         foreach ($this->entries as $entry) {
             $hashes[$this->key($entry)][$entry['sha256']] = true;
         }
+        $published = [];
         foreach ($this->entries as $entry) {
-            $name = (count($hashes[$this->key($entry)]) > 1 ? substr($entry['sha256'], 0, 8) . '-' : '') . $entry['name'];
+            $name = $entry['name'];
+            if (count($hashes[$this->key($entry)]) > 1) {
+                $name = substr($entry['sha256'], 0, 8) . '-' . $name;
+            }
             $path = $this->folder($entry) . '/' . $name;
             $this->write($this->projectDirectory . '/' . $path, $entry['content']);
 
@@ -65,14 +72,23 @@ final class DependencyCopies
                 'provenance' => 'dependency:' . $entry['declaring'],
                 'source' => $entry['source'],
             ];
+            $published[] = $patch;
         }
         $this->entries = [];
+
+        return $published;
     }
 
     private static function cleanName(string $name): string
     {
+        // Replace each character that is not permitted with a dash.
+        // The "u" flag reads the name as UTF-8, so "é" gives one dash and not two.
+        // The flag fails for a name that is not valid UTF-8. Then the second pattern works on bytes.
+        $clean = preg_replace('/[^A-Za-z0-9._-]/u', '-', $name)
+            ?? preg_replace('/[^A-Za-z0-9._-]/', '-', $name)
+            ?? '';
         // Git on macOS and Windows does not record a change to a file name that is only in case.
-        $clean = strtolower(preg_replace('/[^A-Za-z0-9._-]/u', '-', $name) ?? preg_replace('/[^A-Za-z0-9._-]/', '-', $name) ?? '');
+        $clean = strtolower($clean);
         if ($clean === '') {
             return 'patch.patch';
         }
