@@ -78,11 +78,6 @@ final class DependencyResolver extends ResolverBase
                     $declared = $patch->url;
                     $scheme = PatchPath::urlScheme($declared);
                     $remote = $scheme !== null;
-                    if ($remote) {
-                        if (!in_array($scheme, $allowedSchemes, true)) {
-                            throw $this->schemeError($package, $declared, $scheme, $allowedSchemes);
-                        }
-                    }
                     if (!$remote) {
                         $this->assertRelativePath($package, $declared);
                         if (in_array($package->getName(), $skipped, true)) {
@@ -91,6 +86,9 @@ final class DependencyResolver extends ResolverBase
                         $content = $this->readLocalPatch($package, $declared, $projectDirectory);
                         $name = basename($declared);
                     } else {
+                        if (!in_array($scheme, $allowedSchemes, true)) {
+                            throw $this->schemeError($package, $declared, $scheme, $allowedSchemes);
+                        }
                         if (!isset($patch->sha256) && isset(self::$knownHashes[$declared])) {
                             $patch->sha256 = self::$knownHashes[$declared];
                         }
