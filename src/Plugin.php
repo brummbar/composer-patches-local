@@ -123,7 +123,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         $this->downloadOnly = $input->hasOption('download-only') && $input->getOption('download-only');
     }
 
-    public function startInstall(): void
+    public function startInstall(Event $event): void
     {
         if ($this->downloadOnly) {
             return;
@@ -134,6 +134,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         $violations = $check->definitionViolations();
         if (Fingerprint::isCurrent($this->composer)) {
             $violations = array_merge($violations, $check->lockViolations());
+        } elseif (!$event->isDevMode()) {
+            $this->failOn($violations);
+            self::failWithoutDev();
         } else {
             $this->relockRun = true;
         }
@@ -187,6 +190,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
             return;
         }
         if ($this->relockRun || (!$this->installRunStarted && !Fingerprint::isCurrent($this->composer))) {
+            if (!$event->isDevMode()) {
+                self::failWithoutDev();
+            }
             $this->finishWithRelock($event);
             return;
         }
@@ -219,6 +225,15 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         CopyCleanup::run(ComposerPatches::projectDirectory($patches), $referenced);
         $this->failOn((new RuleCheck($this->composer))->lockViolations());
         (new Repatch($this->composer, $this->io))->run($event->isDevMode());
+    }
+
+    private static function failWithoutDev(): never
+    {
+        throw new \RuntimeException(
+            "composer-patches-local: patches.lock.json is missing or out of date, and this install runs without dev packages.\n"
+            . "The plugin does not rebuild patches.lock.json in this mode.\n"
+            . 'Run composer update in development, and commit composer.lock, patches.lock.json and patches/ together.'
+        );
     }
 
     /**

@@ -126,6 +126,7 @@ To ignore all patches that one dependency declares, add it to the composer-patch
 - After you add, change or remove a project patch, run `composer update --lock`.
   Do not use `composer patches-relock`: after it, the next `composer install` rebuilds `patches.lock.json` and downloads the remote dependency patches again.
 - If `patches.lock.json` is missing or out of date, `composer install` rebuilds it, like `composer update`.
+  With `--no-dev`, the install stops with an error and does not rebuild it.
 - When the patches of a package change, `composer install` and `composer update` reinstall the package with the new patches.
   You do not need `composer patches-repatch`.
 - `composer update --no-install` does not update `patches.lock.json` or the copies. Run `composer install` after it.

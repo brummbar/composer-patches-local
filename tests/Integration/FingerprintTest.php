@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
+use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerResult;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Tests the fingerprint in patches.lock.json and the installs that depend on it.
@@ -16,6 +18,12 @@ use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 final class FingerprintTest extends ComposerTestCase
 {
     private const KEY = 'composer-patches-local';
+
+    private const NO_DEV_ERROR = [
+        'composer-patches-local: patches.lock.json is missing or out of date, and this install runs without dev packages.',
+        'The plugin does not rebuild patches.lock.json in this mode.',
+        'Run composer update in development, and commit composer.lock, patches.lock.json and patches/ together.',
+    ];
 
     private const LINE_THREE_LOCAL = 'patches/lib-line-three.patch';
 
@@ -185,6 +193,111 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertProjectFileSame($newLock, $checkout, 'patches.lock.json');
         $this->assertArrayHasKey('acme/extra', $checkout->readPatchesLock()['patches']);
         $this->assertNotSame([], $checkout->tree('patches/dependencies/acme/module-one/acme/extra'));
+    }
+
+    public function testInstallWithoutDevKeepsACurrentLockAndNeedsNoNetwork(): void
+    {
+        $project = $this->projectWithRemotePatch();
+        $lock = $project->readFile('patches.lock.json');
+
+        $result = $project->composer(['install', '--no-dev'], $this->unreachableNetwork());
+
+        $this->assertComposerSucceeded($result);
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+    }
+
+    /**
+     * @return array<string, array{list<string>, array<string, string>}>
+     */
+    public static function noDevModes(): array
+    {
+        return [
+            'option' => [['install', '--no-dev'], []],
+            'environment variable' => [['install'], ['COMPOSER_NO_DEV' => '1']],
+        ];
+    }
+
+    public function testInstallWithoutDevReinstallsAPackageWhoseRootPatchChanged(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOne());
+        $this->assertComposerSucceeded($project->composer(['install']));
+        FileSystem::copyDirectory($project->projectPath('vendor'), $project->projectPath('old-vendor'));
+        $project->setRoot(Layers::site(
+            ['patches/root.patch' => Layers::lineTwoPatch('root')],
+            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
+        ));
+        $this->assertComposerSucceeded($project->composer(['update', '--lock']));
+        $lock = $project->readFile('patches.lock.json');
+        FileSystem::remove($project->projectPath('vendor'));
+        FileSystem::copyDirectory($project->projectPath('old-vendor'), $project->projectPath('vendor'));
+
+        $result = $project->composer(['install', '--no-dev'], $this->unreachableNetwork());
+
+        $this->assertComposerSucceeded($result);
+        $this->assertProjectFileSame("line one\nline two patched by root\nline three\n", $project, 'vendor/acme/lib/lib.txt');
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+    }
+
+    /**
+     * @param list<string> $arguments
+     * @param array<string, string> $environment
+     */
+    #[DataProvider('noDevModes')]
+    public function testInstallWithoutDevStopsWhenTheFingerprintIsDifferent(array $arguments, array $environment): void
+    {
+        $project = $this->projectWithRemotePatch();
+        $this->writeFingerprint($project, 'wrong');
+        $lock = $project->readFile('patches.lock.json');
+        $copies = $project->tree('patches');
+
+        $result = $project->composer($arguments, $environment + $this->unreachableNetwork());
+
+        $this->assertComposerFailed($result);
+        $this->assertNoDevError($result);
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+        $this->assertSame($copies, $project->tree('patches'));
+    }
+
+    public function testFreshInstallWithoutDevStopsWhenTheFingerprintIsDifferent(): void
+    {
+        $project = $this->projectWithRemotePatch();
+        $this->writeFingerprint($project, 'wrong');
+        $lock = $project->readFile('patches.lock.json');
+        $copies = $project->tree('patches');
+        $checkout = $this->track($project->checkout(['composer.lock', 'patches.lock.json', 'patches']));
+
+        $result = $checkout->composer(['install', '--no-dev'], $this->unreachableNetwork());
+
+        $this->assertComposerFailed($result);
+        $this->assertNoDevError($result);
+        $this->assertProjectFileSame($lock, $checkout, 'patches.lock.json');
+        $this->assertSame($copies, $checkout->tree('patches'));
+    }
+
+    private function assertNoDevError(ComposerResult $result): void
+    {
+        foreach (self::NO_DEV_ERROR as $line) {
+            $this->assertOutputContains($line, $result);
+        }
+    }
+
+    private function writeFingerprint(ComposerProject $project, string $fingerprint): void
+    {
+        $lock = $project->readPatchesLock();
+        $lock[self::KEY] = $fingerprint;
+        FileSystem::write($project->projectPath('patches.lock.json'), json_encode($lock, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+    }
+
+    private function projectWithRemotePatch(): ComposerProject
+    {
+        $project = $this->layeredProject(Layers::moduleOne(
+            '1.0.0',
+            ['acme/lib' => ['Change line one' => 'patches/lib-line-one.patch', 'Change line three' => 'http://patches/b/fix.patch']],
+            ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one')],
+        ));
+        $this->assertComposerSucceeded($project->composer(['install']));
+
+        return $project;
     }
 
     private function projectWithLocalPatch(): ComposerProject
