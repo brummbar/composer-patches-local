@@ -132,97 +132,33 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertProjectFileSame('mine', $project, 'patches/keep.patch');
     }
 
-    public function testATargetNameThatIsNotAPackageNameIsSkipped(): void
+    #[DataProvider('skippedTargets')]
+    public function testADependencyPatchForATargetThatComposerPatchesIgnoresIsSkipped(string $target): void
     {
         $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
             [
                 'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
-                '../../..' => ['Bad' => 'patches/outside.patch'],
+                $target => ['Skipped' => 'patches/skipped.patch'],
             ],
             [
                 Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
-                'patches/outside.patch' => Layers::lineTwoPatch('evil'),
-            ],
-        ));
-
-        $result = $project->composer(['install']);
-
-        $this->assertComposerSucceeded($result);
-        $this->assertFalse($project->fileExists('patches/outside.patch'), 'A copy must not leave its folder.');
-        $this->assertArrayNotHasKey(
-            '../../..',
-            $project->readPatchesLock()['patches'],
-            'The patches lock must not list a name that is not a package name.',
-        );
-        $this->assertProjectFileSame(
-            "line one\nline two patched by module-one\nline three\n",
-            $project,
-            'vendor/acme/lib/lib.txt',
-        );
-    }
-
-    public function testAPatchForAPackageThatIsNotInTheProjectIsSkipped(): void
-    {
-        $project = $this->layeredProject(Layers::moduleOne(
-            '1.0.0',
-            [
-                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
-                'acme/absent' => ['Change something' => 'patches/absent.patch'],
-            ],
-            [
-                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
-                'patches/absent.patch' => Layers::lineTwoPatch('absent'),
-            ],
-        ));
-
-        $result = $project->composer(['install']);
-
-        $this->assertComposerSucceeded($result);
-        $this->assertSame(
-            [],
-            $project->tree('patches/dependencies/acme/module-one/acme/absent'),
-            'The plugin must not copy a patch for a package that is not in the project.',
-        );
-        $this->assertArrayNotHasKey(
-            'acme/absent',
-            $project->readPatchesLock()['patches'],
-            'The patches lock must not list a package that is not in the project.',
-        );
-        $this->assertProjectFileSame(
-            "line one\nline two patched by module-one\nline three\n",
-            $project,
-            'vendor/acme/lib/lib.txt',
-        );
-    }
-
-    public function testADependencyPatchForAPackageThatComposerPatchesNeverPatchesIsSkipped(): void
-    {
-        $target = 'cweagans/composer-configurable-plugin';
-        $project = $this->layeredProject(Layers::moduleOne(
-            '1.0.0',
-            [
-                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
-                $target => ['Change something' => 'patches/configurable.patch'],
-            ],
-            [
-                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
-                'patches/configurable.patch' => Layers::lineTwoPatch('configurable'),
+                'patches/skipped.patch' => Layers::lineTwoPatch('skipped'),
             ],
         ));
 
         $result = $project->composer(['update']);
 
         $this->assertComposerSucceeded($result);
-        $this->assertArrayNotHasKey(
-            $target,
-            $project->readPatchesLock()['patches'],
-            'The patches lock must not list a package that composer-patches never patches.',
+        $this->assertSame(
+            ['acme/lib'],
+            array_keys($project->readPatchesLock()['patches']),
+            'The patches lock must list only the real target.',
         );
         $this->assertSame(
-            [],
-            $project->tree('patches/dependencies/acme/module-one/' . $target),
-            'The plugin must not copy a patch for a package that composer-patches never patches.',
+            ['dependencies/acme/module-one/acme/lib/lib-line-two.patch'],
+            array_keys($project->tree('patches')),
+            'The plugin must copy only the patch of the real target. A copy must not leave its folder.',
         );
         $this->assertProjectFileSame(
             "line one\nline two patched by module-one\nline three\n",
@@ -231,39 +167,17 @@ final class LocalCopiesTest extends ComposerTestCase
         );
     }
 
-    public function testADependencyPatchForATargetNameWithCapitalLettersIsSkipped(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function skippedTargets(): array
     {
-        $target = 'Acme/Lib';
-        $project = $this->layeredProject(Layers::moduleOne(
-            '1.0.0',
-            [
-                'acme/lib' => ['Change line two' => Layers::LOCAL_PATCH_PATH],
-                $target => ['Change something' => 'patches/capitals.patch'],
-            ],
-            [
-                Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one'),
-                'patches/capitals.patch' => Layers::lineTwoPatch('capitals'),
-            ],
-        ));
-
-        $result = $project->composer(['update']);
-
-        $this->assertComposerSucceeded($result);
-        $this->assertArrayNotHasKey(
-            $target,
-            $project->readPatchesLock()['patches'],
-            'The patches lock must not list a target name with capital letters.',
-        );
-        $this->assertSame(
-            ['acme/lib/lib-line-two.patch'],
-            array_keys($project->tree('patches/dependencies/acme/module-one')),
-            'The plugin must not copy a patch for a target name with capital letters.',
-        );
-        $this->assertProjectFileSame(
-            "line one\nline two patched by module-one\nline three\n",
-            $project,
-            'vendor/acme/lib/lib.txt',
-        );
+        return [
+            'not a package name' => ['../../..'],
+            'package not in the project' => ['acme/absent'],
+            'package of composer-patches' => ['cweagans/composer-configurable-plugin'],
+            'capital letters' => ['Acme/Lib'],
+        ];
     }
 
     #[DataProvider('providePatchPathsOutsideThePackage')]

@@ -173,11 +173,6 @@ final class ComposerProject
         return $content;
     }
 
-    public function fileExists(string $relativePath): bool
-    {
-        return is_file($this->projectPath($relativePath));
-    }
-
     /**
      * @return PatchesLock
      */
