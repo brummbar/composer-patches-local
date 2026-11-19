@@ -133,15 +133,15 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         $check = new RuleCheck($this->composer);
         $violations = $check->definitionViolations();
         if (Fingerprint::isCurrent($this->composer)) {
-            $violations = array_merge($violations, $check->lockViolations());
-        } elseif (!$event->isDevMode()) {
-            $this->failOn($violations);
-            self::failWithoutDev();
-        } else {
-            $this->relockRun = true;
+            $this->failOn(array_merge($violations, $check->lockViolations()));
+            return;
         }
         $this->failOn($violations);
-        if ($this->reinstall && $this->relockRun) {
+        if (!$event->isDevMode()) {
+            self::failWithoutDev();
+        }
+        $this->relockRun = true;
+        if ($this->reinstall) {
             (new Relock($this->composer, $this))->run([]);
         }
     }
