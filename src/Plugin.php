@@ -27,8 +27,6 @@ use cweagans\Composer\Capability\Resolver\ResolverProvider;
  */
 final class Plugin implements PluginInterface, EventSubscriberInterface, Capable, SkippedPackages
 {
-    public const NAME = 'brummbar/composer-patches-local';
-
     /**
      * The key of the plugin in composer.json, patches.lock.json and installed.json.
      */
