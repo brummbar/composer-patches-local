@@ -217,6 +217,35 @@ final class FingerprintTest extends ComposerTestCase
         ];
     }
 
+    /**
+     * @param list<string> $arguments
+     */
+    #[DataProvider('installModes')]
+    public function testAnInstallWithACurrentLockDoesNotRelockWhenAScriptCallsPostUpdateCmd(array $arguments): void
+    {
+        $project = $this->projectWithRemotePatch();
+        $lock = $project->readFile('patches.lock.json');
+        $copies = $project->tree('patches');
+        $project->setScripts(['post-install-cmd' => '@post-update-cmd']);
+
+        $result = $project->composer($arguments, $this->unreachableNetwork());
+
+        $this->assertComposerSucceeded($result);
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+        $this->assertSame($copies, $project->tree('patches'));
+    }
+
+    /**
+     * @return array<string, array{list<string>}>
+     */
+    public static function installModes(): array
+    {
+        return [
+            'with dev packages' => [['install']],
+            'without dev packages' => [['install', '--no-dev']],
+        ];
+    }
+
     public function testInstallWithoutDevReinstallsAPackageWhoseRootPatchChanged(): void
     {
         $project = $this->layeredProject(Layers::moduleOne());

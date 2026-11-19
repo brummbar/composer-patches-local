@@ -38,6 +38,9 @@ final class ComposerProject
     /** @var array<string, string> Fixture packages of type composer-plugin. */
     private array $pluginPackages = [];
 
+    /** @var array<string, string|list<string>> */
+    private array $scripts = [];
+
     private string $cacheDirectory;
 
     /** @var array<string, mixed> */
@@ -122,6 +125,17 @@ final class ComposerProject
     {
         $this->withPlugin = true;
         $this->disableDependencyResolver = $disableDependencyResolver;
+        return $this;
+    }
+
+    /**
+     * Sets the scripts of the root project.
+     *
+     * @param array<string, string|list<string>> $scripts
+     */
+    public function setScripts(array $scripts): self
+    {
+        $this->scripts = $scripts;
         return $this;
     }
 
@@ -267,6 +281,9 @@ final class ComposerProject
         }
         if ($extra) {
             $data['extra'] = $extra;
+        }
+        if ($this->scripts !== []) {
+            $data['scripts'] = $this->scripts;
         }
         FileSystem::write($this->projectPath('composer.json'), self::encode($data));
     }

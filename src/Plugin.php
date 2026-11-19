@@ -125,7 +125,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
     public function startInstall(Event $event): void
     {
-        if ($this->downloadOnly) {
+        if (self::isNested($event) || $this->downloadOnly) {
             return;
         }
         $this->checkConfiguration();
@@ -143,12 +143,14 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         $this->failOn($violations);
         if ($this->reinstall && $this->relockRun) {
             (new Relock($this->composer, $this))->run([]);
-            $this->startRelockDone = true;
         }
     }
 
-    public function startUpdate(): void
+    public function startUpdate(Event $event): void
     {
+        if (self::isNested($event)) {
+            return;
+        }
         $this->checkConfiguration();
         $this->relockRun = true;
         $this->failOn((new RuleCheck($this->composer))->definitionViolations());
@@ -176,6 +178,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
     public function finishUpdate(Event $event): void
     {
+        if (self::isNested($event)) {
+            return;
+        }
         if ($this->relockRun && !$this->startRelockDone) {
             $this->io->writeError(self::NOT_INSTALLED_MESSAGE);
             return;
@@ -185,6 +190,9 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
     public function finishInstall(Event $event): void
     {
+        if (self::isNested($event)) {
+            return;
+        }
         if ($this->downloadOnly) {
             $this->io->writeError(self::NOT_INSTALLED_MESSAGE);
             return;
@@ -225,6 +233,16 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         CopyCleanup::run(ComposerPatches::projectDirectory($patches), $referenced);
         $this->failOn((new RuleCheck($this->composer))->lockViolations());
         (new Repatch($this->composer, $this->io))->run($event->isDevMode());
+    }
+
+    /**
+     * A root script can call a script event by name.
+     * Composer then dispatches that event inside the first event.
+     * The plugin ignores such an event.
+     */
+    private static function isNested(Event $event): bool
+    {
+        return $event->getOriginatingEvent() !== null;
     }
 
     private static function failWithoutDev(): never
