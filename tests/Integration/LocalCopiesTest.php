@@ -332,6 +332,19 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertOutputContains('must be a list of URL schemes', $result);
     }
 
+    public function testARemoteDependencyPatchWithAWrongSha256StopsTheRun(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOne('1.0.0', ['acme/lib' => [[
+            'description' => 'Change line two',
+            'url' => Layers::REMOTE_PATCH_URL,
+            'sha256' => hash('sha256', 'other text'),
+        ]]]));
+
+        $this->assertComposerFailed($project->composer(['update']));
+
+        $this->assertSame([], $project->tree(self::FOLDER));
+    }
+
     public function testPatchesRelockWritesALockThatPointsAtCopies(): void
     {
         $project = $this->projectWithLocalAndRemotePatch();
