@@ -195,38 +195,17 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertNotSame([], $checkout->tree('patches/dependencies/acme/module-one/acme/extra'));
     }
 
-    public function testInstallWithoutDevKeepsACurrentLockAndNeedsNoNetwork(): void
-    {
-        $project = $this->projectWithRemotePatch();
-        $lock = $project->readFile('patches.lock.json');
-
-        $result = $project->composer(['install', '--no-dev'], $this->unreachableNetwork());
-
-        $this->assertComposerSucceeded($result);
-        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
-    }
-
-    /**
-     * @return array<string, array{list<string>, array<string, string>}>
-     */
-    public static function noDevModes(): array
-    {
-        return [
-            'option' => [['install', '--no-dev'], []],
-            'environment variable' => [['install'], ['COMPOSER_NO_DEV' => '1']],
-        ];
-    }
-
     /**
      * @param list<string> $arguments
+     * @param array<string, string> $scripts
      */
-    #[DataProvider('installModes')]
-    public function testAnInstallWithACurrentLockDoesNotRelockWhenAScriptCallsPostUpdateCmd(array $arguments): void
+    #[DataProvider('currentLockInstalls')]
+    public function testAnInstallWithACurrentLockDoesNotRelock(array $arguments, array $scripts): void
     {
         $project = $this->projectWithRemotePatch();
         $lock = $project->readFile('patches.lock.json');
         $copies = $project->tree('patches');
-        $project->setScripts(['post-install-cmd' => '@post-update-cmd']);
+        $project->setScripts($scripts);
 
         $result = $project->composer($arguments, $this->unreachableNetwork());
 
@@ -236,13 +215,17 @@ final class FingerprintTest extends ComposerTestCase
     }
 
     /**
-     * @return array<string, array{list<string>}>
+     * @return array<string, array{list<string>, array<string, string>}>
      */
-    public static function installModes(): array
+    public static function currentLockInstalls(): array
     {
+        $script = ['post-install-cmd' => '@post-update-cmd'];
+
         return [
-            'with dev packages' => [['install']],
-            'without dev packages' => [['install', '--no-dev']],
+            'with dev packages' => [['install'], []],
+            'without dev packages' => [['install', '--no-dev'], []],
+            'with dev packages and a script that calls post-update-cmd' => [['install'], $script],
+            'without dev packages and a script that calls post-update-cmd' => [['install', '--no-dev'], $script],
         ];
     }
 
@@ -285,6 +268,17 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertNoDevError($result);
         $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
         $this->assertSame($copies, $project->tree('patches'));
+    }
+
+    /**
+     * @return array<string, array{list<string>, array<string, string>}>
+     */
+    public static function noDevModes(): array
+    {
+        return [
+            'option' => [['install', '--no-dev'], []],
+            'environment variable' => [['install'], ['COMPOSER_NO_DEV' => '1']],
+        ];
     }
 
     public function testFreshInstallWithoutDevStopsWhenTheFingerprintIsDifferent(): void
