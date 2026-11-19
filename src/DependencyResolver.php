@@ -121,12 +121,7 @@ final class DependencyResolver extends ResolverBase
 
     private function assertRelativePath(PackageInterface $package, string $declared): void
     {
-        $filesystem = new Filesystem();
-        if ($filesystem->isAbsolutePath($declared)) {
-            throw $this->outsideError($package, $declared);
-        }
-        $normalized = $filesystem->normalizePath($declared);
-        if ($normalized === '..' || str_starts_with($normalized, '../')) {
+        if ((new Filesystem())->isAbsolutePath($declared) || PatchPath::normalise($declared) === null) {
             throw $this->outsideError($package, $declared);
         }
     }
