@@ -62,7 +62,7 @@ final class DependencyResolver extends ResolverBase
                 // composer-patches applies a patch only to a package in composer.lock, and never to its own two packages.
                 // It finds a patch only by the exact package name, which is lowercase.
                 // Thus, for these targets, the plugin makes no copy and no lock entry.
-                if (!isset($lockedTypes[$target]) || in_array($target, Repatch::UPSTREAM, true)) {
+                if ($targetPatches === [] || !isset($lockedTypes[$target]) || in_array($target, Repatch::UPSTREAM, true)) {
                     continue;
                 }
                 // The patched plugin code runs in Composer, so a dependency must not patch it.

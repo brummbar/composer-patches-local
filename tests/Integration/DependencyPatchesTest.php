@@ -349,22 +349,7 @@ final class DependencyPatchesTest extends ComposerTestCase
 
     public function testADependencyPatchForAComposerPluginStopsTheRun(): void
     {
-        $pluginFiles = [
-            'src/Plugin.php' => "<?php\nnamespace Acme\\Hook;\nuse Composer\\Composer;\nuse Composer\\IO\\IOInterface;\nuse Composer\\Plugin\\PluginInterface;\n"
-                . "final class Plugin implements PluginInterface\n{\n"
-                . "    public function activate(Composer \$composer, IOInterface \$io): void {}\n"
-                . "    public function deactivate(Composer \$composer, IOInterface \$io): void {}\n"
-                . "    public function uninstall(Composer \$composer, IOInterface \$io): void {}\n}\n",
-        ];
-        $plugin = new FixturePackage(
-            'acme/hook',
-            '1.0.0',
-            $pluginFiles,
-            ['composer-plugin-api' => '^2.0'],
-            ['class' => 'Acme\\Hook\\Plugin'],
-            'composer-plugin',
-            ['psr-4' => ['Acme\\Hook\\' => 'src/']],
-        );
+        $plugin = $this->hookPluginFixture();
         $patchFile = 'patches/hook-notes.patch';
         $moduleOne = new FixturePackage(
             'acme/module-one',
@@ -385,6 +370,48 @@ final class DependencyPatchesTest extends ComposerTestCase
         $this->assertComposerFailed($result);
         $this->assertOutputContains('acme/module-one declares patches for the Composer plugin acme/hook', $result);
         $this->assertOutputContains('Only the root project can patch a Composer plugin', $result);
+    }
+
+    public function testAnEmptyPatchListForAComposerPluginDoesNotStopTheRun(): void
+    {
+        $moduleOne = new FixturePackage(
+            'acme/module-one',
+            '1.0.0',
+            ['patches/lib.patch' => Layers::lineOnePatch('module-one')],
+            ['acme/hook' => '^1.0', 'acme/lib' => '^1.0'],
+            ['patches' => ['acme/hook' => [], 'acme/lib' => ['Change line one' => 'patches/lib.patch']]],
+        );
+        $project = $this->createProject();
+        $project->addPackage($this->hookPluginFixture())
+            ->addPackage(Layers::lib())
+            ->addPackage($moduleOne)
+            ->addPackage(Layers::moduleTwo())
+            ->setRoot(Layers::site())
+            ->withPlugin();
+
+        $this->assertComposerSucceeded($project->composer(['update']));
+
+        $this->assertProjectFileSame("line one patched by module-one\nline two\nline three\n", $project, 'vendor/acme/lib/lib.txt');
+    }
+
+    private function hookPluginFixture(): FixturePackage
+    {
+        $pluginFiles = [
+            'src/Plugin.php' => "<?php\nnamespace Acme\\Hook;\nuse Composer\\Composer;\nuse Composer\\IO\\IOInterface;\nuse Composer\\Plugin\\PluginInterface;\n"
+                . "final class Plugin implements PluginInterface\n{\n"
+                . "    public function activate(Composer \$composer, IOInterface \$io): void {}\n"
+                . "    public function deactivate(Composer \$composer, IOInterface \$io): void {}\n"
+                . "    public function uninstall(Composer \$composer, IOInterface \$io): void {}\n}\n",
+        ];
+        return new FixturePackage(
+            'acme/hook',
+            '1.0.0',
+            $pluginFiles,
+            ['composer-plugin-api' => '^2.0'],
+            ['class' => 'Acme\\Hook\\Plugin'],
+            'composer-plugin',
+            ['psr-4' => ['Acme\\Hook\\' => 'src/']],
+        );
     }
 
     private function rootWithPatchesFile(string $patch): FixturePackage
