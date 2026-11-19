@@ -60,10 +60,12 @@ final class LayeredFixtures
      *
      * @param array<string, string> $files
      * @param array<string, mixed> $extra
+     * @param array<string, string> $require
+     *   Requirements in addition to module-two.
      */
-    public static function site(array $files = [], array $extra = []): FixturePackage
+    public static function site(array $files = [], array $extra = [], array $require = []): FixturePackage
     {
-        return new FixturePackage('acme/site', '1.0.0', $files, ['acme/module-two' => '^1.0'], $extra, 'project');
+        return new FixturePackage('acme/site', '1.0.0', $files, ['acme/module-two' => '^1.0'] + $require, $extra, 'project');
     }
 
     /**

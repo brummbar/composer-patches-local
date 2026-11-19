@@ -7,6 +7,7 @@ namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
+use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 
 /**
@@ -143,6 +144,47 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertNotSame($oldLock[self::KEY] ?? null, $lock[self::KEY] ?? null);
         $this->assertSame('patches/root.patch', $lock['patches']['acme/lib'][0]['url']);
         $this->assertProjectFileSame("line one\nline two patched by root\nline three\n", $project, 'vendor/acme/lib/lib.txt');
+    }
+
+    public function testAnUnrelatedPackageDoesNotChangeTheLock(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
+        $this->assertComposerSucceeded($project->composer(['install']));
+        $lock = $project->readFile('patches.lock.json');
+
+        $project->addPackage(new FixturePackage('acme/unrelated', '1.0.0', ['unrelated.txt' => "unrelated\n"]));
+        $project->setRoot(Layers::site([], [], ['acme/unrelated' => '^1.0']));
+        $this->assertComposerSucceeded($project->composer(['update']));
+
+        $this->assertProjectFileSame($lock, $project, 'patches.lock.json');
+    }
+
+    public function testATargetThatArrivesLaterMakesAnInstallRebuildTheLock(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOne(
+            '1.0.0',
+            ['acme/extra' => ['Change line two' => Layers::LOCAL_PATCH_PATH]],
+            [Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one')],
+        ));
+        $project->addPackage(new FixturePackage('acme/extra', '1.0.0', ['lib.txt' => Layers::LIB_FILE]));
+        $this->assertComposerSucceeded($project->composer(['install']));
+        $oldLock = $project->readFile('patches.lock.json');
+        $this->assertArrayNotHasKey('acme/extra', $project->readPatchesLock()['patches']);
+
+        $project->setRoot(Layers::site([], [], ['acme/extra' => '^1.0']));
+        $this->assertComposerSucceeded($project->composer(['update']));
+        $newLock = $project->readFile('patches.lock.json');
+        $this->assertNotSame($oldLock, $newLock);
+
+        $checkout = $this->track($project->checkout(['composer.lock']));
+        FileSystem::write($checkout->projectPath('patches.lock.json'), $oldLock);
+
+        $this->assertComposerSucceeded($checkout->composer(['install']));
+
+        $this->assertProjectFileSame("line one\nline two patched by module-one\nline three\n", $checkout, 'vendor/acme/extra/lib.txt');
+        $this->assertProjectFileSame($newLock, $checkout, 'patches.lock.json');
+        $this->assertArrayHasKey('acme/extra', $checkout->readPatchesLock()['patches']);
+        $this->assertNotSame([], $checkout->tree('patches/dependencies/acme/module-one/acme/extra'));
     }
 
     private function projectWithLocalPatch(): ComposerProject

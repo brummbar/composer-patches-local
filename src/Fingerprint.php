@@ -21,12 +21,18 @@ final class Fingerprint
         $file = $patches->getConfig('patches-file');
         $packages = [];
         $lockedNames = [];
+        $targets = [];
         $locker = $composer->getLocker();
         if ($locker->isLocked()) {
             foreach ($locker->getLockedRepository()->getPackages() as $package) {
                 $extra = $package->getExtra();
                 if ($package instanceof AliasPackage || empty($extra['patches'])) {
                     continue;
+                }
+                if (is_array($extra['patches'])) {
+                    foreach (array_keys($extra['patches']) as $target) {
+                        $targets[(string) $target] = true;
+                    }
                 }
                 $packages[$package->getName()] = [
                     'name' => $package->getName(),
@@ -37,7 +43,9 @@ final class Fingerprint
                 ];
             }
             foreach ($locker->getLockedRepository(true)->getPackages() as $package) {
-                $lockedNames[$package->getName()] = true;
+                if (isset($targets[$package->getName()])) {
+                    $lockedNames[$package->getName()] = true;
+                }
             }
         }
         ksort($packages);

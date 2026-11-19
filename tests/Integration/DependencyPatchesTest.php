@@ -215,7 +215,7 @@ final class DependencyPatchesTest extends ComposerTestCase
 
     public function testTheEndStepRunsBeforeAScaffoldPlugin(): void
     {
-        $project = $this->layeredProject(Layers::moduleOne(), $this->site(['aaa/scaffold' => '*']));
+        $project = $this->layeredProject(Layers::moduleOne(), Layers::site([], [], ['aaa/scaffold' => '*']));
         $project->addPackage($this->scaffoldFixture());
         $this->assertComposerSucceeded($project->composer(['install']));
         $this->assertProjectFileSame(Layers::LIB_FILE, $project, 'lib-copy.txt');
@@ -387,20 +387,9 @@ final class DependencyPatchesTest extends ComposerTestCase
         $this->assertOutputContains('Only the root project can patch a Composer plugin', $result);
     }
 
-    /**
-     * @param array<string, string> $extraRequire
-     * @param array<string, string> $files
-     */
-    private function site(array $extraRequire = [], array $files = []): FixturePackage
-    {
-        $site = Layers::site($files);
-
-        return new FixturePackage($site->name, $site->version, $site->files, $site->require + $extraRequire, $site->extra, $site->type);
-    }
-
     private function rootWithPatchesFile(string $patch): FixturePackage
     {
-        return $this->site([], [
+        return Layers::site([
             'patches.json' => json_encode(['patches' => ['acme/lib' => ['Root patch' => self::ROOT_PATCH]]], JSON_THROW_ON_ERROR),
             self::ROOT_PATCH => $patch,
         ]);
