@@ -17,6 +17,10 @@ final class LayeredFixtures
 
     public const REMOTE_PATCH_URL = 'http://patches/lib-line-two.patch';
 
+    public const LINE_ONE_PATCH_PATH = 'patches/lib-line-one.patch';
+
+    public const REMOTE_FIX_URL = 'http://patches/b/fix.patch?download=1#top';
+
     public static function lib(string $version = '1.0.0'): FixturePackage
     {
         return new FixturePackage('acme/lib', $version, ['lib.txt' => self::LIB_FILE]);
@@ -47,6 +51,21 @@ final class LayeredFixtures
             $version,
             ['acme/lib' => ['Change line two' => self::LOCAL_PATCH_PATH]],
             [self::LOCAL_PATCH_PATH => self::lineTwoPatch('module-one')],
+        );
+    }
+
+    /**
+     * Module-one with a local patch for line one and a remote patch for line three.
+     */
+    public static function moduleOneWithLocalAndRemotePatch(): FixturePackage
+    {
+        return self::moduleOne(
+            '1.0.0',
+            ['acme/lib' => [
+                'Change line one' => self::LINE_ONE_PATCH_PATH,
+                'Change line three' => self::REMOTE_FIX_URL,
+            ]],
+            [self::LINE_ONE_PATCH_PATH => self::lineOnePatch('module-one')],
         );
     }
 

@@ -63,8 +63,8 @@ final class FingerprintTest extends ComposerTestCase
         $oldCopies = $project->tree('patches');
         $project->addPackage(Layers::moduleOne(
             '1.1.0',
-            ['acme/lib' => ['Change line one' => 'patches/lib-line-one.patch', 'Change line three' => self::LINE_THREE_LOCAL]],
-            ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one'), self::LINE_THREE_LOCAL => Layers::lineThreePatch('module-one')],
+            ['acme/lib' => ['Change line one' => Layers::LINE_ONE_PATCH_PATH, 'Change line three' => self::LINE_THREE_LOCAL]],
+            [Layers::LINE_ONE_PATCH_PATH => Layers::lineOnePatch('module-one'), self::LINE_THREE_LOCAL => Layers::lineThreePatch('module-one')],
         ));
         $this->assertComposerSucceeded($project->composer(['update']));
         $newLock = $project->readFile('patches.lock.json');
@@ -88,10 +88,7 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertComposerSucceeded($project->composer(['install']));
         $oldLock = $project->readPatchesLock();
 
-        $project->setRoot(Layers::site(
-            ['patches/root.patch' => Layers::lineTwoPatch('root')],
-            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
-        ));
+        $project->setRoot($this->siteWithRootPatch());
 
         $this->assertComposerSucceeded($project->composer(['install'], $this->unreachableNetwork()));
 
@@ -122,10 +119,7 @@ final class FingerprintTest extends ComposerTestCase
         $project = $this->layeredProject(Layers::moduleOne());
         $this->assertComposerSucceeded($project->composer(['install']));
 
-        $project->setRoot(Layers::site(
-            ['patches/root.patch' => Layers::lineTwoPatch('root')],
-            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
-        ));
+        $project->setRoot($this->siteWithRootPatch());
         $vendorFile = $project->readFile('vendor/acme/lib/lib.txt');
         $lock = $project->readFile('patches.lock.json');
 
@@ -141,10 +135,7 @@ final class FingerprintTest extends ComposerTestCase
         $this->assertComposerSucceeded($project->composer(['install']));
         $oldLock = $project->readPatchesLock();
 
-        $project->setRoot(Layers::site(
-            ['patches/root.patch' => Layers::lineTwoPatch('root')],
-            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
-        ));
+        $project->setRoot($this->siteWithRootPatch());
 
         $this->assertComposerSucceeded($project->composer(['update', '--lock']));
 
@@ -234,10 +225,7 @@ final class FingerprintTest extends ComposerTestCase
         $project = $this->layeredProject(Layers::moduleOne());
         $this->assertComposerSucceeded($project->composer(['install']));
         FileSystem::copyDirectory($project->projectPath('vendor'), $project->projectPath('old-vendor'));
-        $project->setRoot(Layers::site(
-            ['patches/root.patch' => Layers::lineTwoPatch('root')],
-            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
-        ));
+        $project->setRoot($this->siteWithRootPatch());
         $this->assertComposerSucceeded($project->composer(['update', '--lock']));
         $lock = $project->readFile('patches.lock.json');
         FileSystem::remove($project->projectPath('vendor'));
@@ -313,11 +301,7 @@ final class FingerprintTest extends ComposerTestCase
 
     private function projectWithRemotePatch(): ComposerProject
     {
-        $project = $this->layeredProject(Layers::moduleOne(
-            '1.0.0',
-            ['acme/lib' => ['Change line one' => 'patches/lib-line-one.patch', 'Change line three' => 'http://patches/b/fix.patch']],
-            ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one')],
-        ));
+        $project = $this->layeredProject(Layers::moduleOneWithLocalAndRemotePatch());
         $this->assertComposerSucceeded($project->composer(['install']));
 
         return $project;
@@ -327,10 +311,18 @@ final class FingerprintTest extends ComposerTestCase
     {
         $project = $this->layeredProject(Layers::moduleOne(
             '1.0.0',
-            ['acme/lib' => ['Change line one' => 'patches/lib-line-one.patch']],
-            ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one')],
+            ['acme/lib' => ['Change line one' => Layers::LINE_ONE_PATCH_PATH]],
+            [Layers::LINE_ONE_PATCH_PATH => Layers::lineOnePatch('module-one')],
         ));
 
         return $project;
+    }
+
+    private function siteWithRootPatch(): FixturePackage
+    {
+        return Layers::site(
+            ['patches/root.patch' => Layers::lineTwoPatch('root')],
+            ['patches' => ['acme/lib' => ['Root patch' => 'patches/root.patch']]],
+        );
     }
 }

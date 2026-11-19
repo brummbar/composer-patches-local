@@ -7,7 +7,6 @@ namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
-use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -17,8 +16,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 final class LocalCopiesTest extends ComposerTestCase
 {
     private const FOLDER = 'patches/dependencies/acme/module-one/acme/lib';
-
-    private const LINE_ONE_LOCAL = 'patches/lib-line-one.patch';
 
     public function testALocalAndARemotePatchAreCopiedAndASecondUpdateChangesNothing(): void
     {
@@ -34,9 +31,9 @@ final class LocalCopiesTest extends ComposerTestCase
         $entries = $project->readPatchesLock()['patches']['acme/lib'];
         $this->assertCount(2, $entries);
         $this->assertSame(self::FOLDER . '/lib-line-one.patch', $entries[0]['url']);
-        $this->assertSame(['provenance' => 'dependency:acme/module-one', 'source' => self::LINE_ONE_LOCAL], $entries[0]['extra']);
+        $this->assertSame(['provenance' => 'dependency:acme/module-one', 'source' => Layers::LINE_ONE_PATCH_PATH], $entries[0]['extra']);
         $this->assertSame(self::FOLDER . '/fix.patch', $entries[1]['url']);
-        $this->assertSame(['provenance' => 'dependency:acme/module-one', 'source' => 'http://patches/b/fix.patch?download=1#top'], $entries[1]['extra']);
+        $this->assertSame(['provenance' => 'dependency:acme/module-one', 'source' => Layers::REMOTE_FIX_URL], $entries[1]['extra']);
         $this->assertProjectFileSame(Layers::lineOnePatch('module-one'), $project, self::FOLDER . '/lib-line-one.patch');
         $this->assertProjectFileSame((string) file_get_contents(__DIR__ . '/../fixtures/remote-patches/b/fix.patch'), $project, self::FOLDER . '/fix.patch');
         $lock = $project->readFile('patches.lock.json');
@@ -103,7 +100,7 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testACopyAndItsEmptyFoldersAreDeletedWhenTheDependencyDropsThePatch(): void
     {
-        $project = $this->layeredProject($this->moduleOneWithLocalAndRemotePatch());
+        $project = $this->layeredProject(Layers::moduleOneWithLocalAndRemotePatch());
         $this->assertComposerSucceeded($project->composer(['install']));
         FileSystem::write($project->projectPath('patches/own.txt'), 'mine');
         FileSystem::write($project->projectPath('patches/dependencies/acme/old/keep-me.txt'), 'unused copy');
@@ -304,13 +301,11 @@ final class LocalCopiesTest extends ComposerTestCase
 
     public function testARootPatchWithTheSameContentAsADependencyPatchWinsAndNoCopyStays(): void
     {
-        $project = $this->createProject();
-        Layers::addLayers($project, Layers::moduleOneWithLocalPatch());
         $site = Layers::site([
             'patches.json' => json_encode(['patches' => ['acme/lib' => ['Root patch' => 'patches/lib.patch']]], JSON_THROW_ON_ERROR),
             'patches/lib.patch' => Layers::lineTwoPatch('module-one'),
         ]);
-        $project->setRoot($site)->withPlugin();
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch(), $site);
 
         $this->assertComposerSucceeded($project->composer(['install']));
         $this->assertRootPatchWins($project);
@@ -329,20 +324,8 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertProjectFileSame("line one\nline two patched by module-one\nline three\n", $project, 'vendor/acme/lib/lib.txt');
     }
 
-    private function moduleOneWithLocalAndRemotePatch(): FixturePackage
-    {
-        return Layers::moduleOne(
-            '1.0.0',
-            ['acme/lib' => [
-                'Change line one' => self::LINE_ONE_LOCAL,
-                'Change line three' => 'http://patches/b/fix.patch?download=1#top',
-            ]],
-            [self::LINE_ONE_LOCAL => Layers::lineOnePatch('module-one')],
-        );
-    }
-
     private function projectWithLocalAndRemotePatch(): ComposerProject
     {
-        return $this->layeredProject($this->moduleOneWithLocalAndRemotePatch());
+        return $this->layeredProject(Layers::moduleOneWithLocalAndRemotePatch());
     }
 }

@@ -70,14 +70,7 @@ final class InstallWithoutPatchesLockTest extends ComposerTestCase
 
     private function installedProject(): ComposerProject
     {
-        $project = $this->layeredProject(Layers::moduleOne(
-            '1.0.0',
-            ['acme/lib' => [
-                'Change line one' => 'patches/lib-line-one.patch',
-                'Change line three' => 'http://patches/b/fix.patch',
-            ]],
-            ['patches/lib-line-one.patch' => Layers::lineOnePatch('module-one')],
-        ));
+        $project = $this->layeredProject(Layers::moduleOneWithLocalAndRemotePatch());
         $this->assertComposerSucceeded($project->composer(['install']));
         $this->assertProjectFileSame(self::PATCHED, $project, 'vendor/acme/lib/lib.txt');
 
