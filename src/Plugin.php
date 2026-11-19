@@ -215,7 +215,6 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
     private function finishWithRelock(Event $event): void
     {
-        $this->checkConfiguration();
         $patches = ComposerPatches::find($this->composer);
         (new Relock($this->composer, $this))->run([], true);
         // CopyCleanup must keep only the copies that are in patches.lock.json.
