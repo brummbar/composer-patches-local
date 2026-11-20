@@ -95,7 +95,7 @@ final class DependencyResolver extends ResolverBase
                         $content = (string) file_get_contents((string) $patch->localPath);
                         // composer-patches must read the copy, not the downloaded file.
                         unset($patch->localPath);
-                        $name = DependencyCopies::urlName($declared);
+                        $name = PatchPath::urlName($declared);
                     }
                     $sha256 = hash('sha256', $content);
                     if (isset($patch->sha256) && $patch->sha256 !== $sha256) {

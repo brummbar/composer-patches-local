@@ -45,6 +45,9 @@ final class ComposerProject
 
     private string $cacheDirectory;
 
+    /** The composer.json content that the last call wrote. */
+    private ?string $writtenComposerJson = null;
+
     public function __construct()
     {
         $this->directory = sys_get_temp_dir() . '/cpl-test-' . bin2hex(random_bytes(6));
@@ -286,7 +289,11 @@ final class ComposerProject
         if ($this->scripts !== []) {
             $data['scripts'] = $this->scripts;
         }
-        FileSystem::write($this->projectPath('composer.json'), self::encode($data));
+        $json = self::encode($data);
+        if ($json !== $this->writtenComposerJson) {
+            FileSystem::write($this->projectPath('composer.json'), $json);
+            $this->writtenComposerJson = $json;
+        }
     }
 
     /**

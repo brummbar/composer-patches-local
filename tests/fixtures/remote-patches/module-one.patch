@@ -1,0 +1,5 @@
+--- a/module.txt
++++ b/module.txt
+@@ -1 +1 @@
+-module one
++module one patched by the site

@@ -49,6 +49,7 @@ final class RuleCheckTest extends ComposerTestCase
 
             $this->assertComposerFailed($result);
             $this->assertOutputContains('acme/lib, "Remote fix" (http://patches/lib-line-two.patch): the patch is a URL', $result);
+            $this->assertOutputContains('Run composer patches-local-import to download the remote patches of the root project into the patches/ folder.', $result);
         }
     }
 
@@ -63,6 +64,7 @@ final class RuleCheckTest extends ComposerTestCase
 
         $this->assertComposerFailed($result);
         $this->assertOutputContains('acme/lib, "Escapes" (patches/../other/x.patch): the patch is not a file inside patches/', $result);
+        $this->assertStringNotContainsString('patches-local-import', $result->output);
     }
 
     public function testALockUrlOutsidePatchesStopsInstallAndTheCommand(): void

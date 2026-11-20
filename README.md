@@ -66,6 +66,17 @@ Your project patches must be files in the `patches/` folder. Download each remot
 
 A URL or a path outside this folder stops the run.
 
+If your project already has remote patches, the first `composer require` stops because of this rule. The plugin stays installed. Then run:
+
+```shell
+composer patches-local-import
+composer install
+```
+
+The command downloads each remote patch of `extra.patches` and of your patches file into `patches/<package>/`, and changes its `url` to the local path. It does not move local files that are outside `patches/`.
+The command writes `composer.json` and the patches file again with the standard formatting of Composer.
+If you did not give a version constraint to `composer require`, the constraint `*` stays in `composer.json`, because the run stopped. Change it to the version that you want.
+
 ## How it works
 
 The plugin copies each dependency patch to `patches/dependencies/<declaring package>/<patched package>/`.

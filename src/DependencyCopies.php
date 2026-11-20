@@ -28,20 +28,10 @@ final class DependencyCopies
             'patch' => $patch,
             'declaring' => $declaringPackage,
             'source' => $patch->url,
-            'name' => self::cleanName($rawName),
+            'name' => PatchPath::cleanName($rawName),
             'content' => $content,
             'sha256' => hash('sha256', $content),
         ];
-    }
-
-    /**
-     * Returns the last segment of the path of a URL, without query and fragment.
-     */
-    public static function urlName(string $url): string
-    {
-        $path = parse_url($url, PHP_URL_PATH);
-
-        return is_string($path) ? basename($path) : '';
     }
 
     /**
@@ -77,23 +67,6 @@ final class DependencyCopies
         $this->entries = [];
 
         return $published;
-    }
-
-    private static function cleanName(string $name): string
-    {
-        // Replace each character that is not permitted with a dash.
-        // The "u" flag reads the name as UTF-8, so "é" gives one dash and not two.
-        // The flag fails for a name that is not valid UTF-8. Then the second pattern works on bytes.
-        $clean = preg_replace('/[^A-Za-z0-9._-]/u', '-', $name)
-            ?? preg_replace('/[^A-Za-z0-9._-]/', '-', $name)
-            ?? '';
-        // Git on macOS and Windows does not record a change to a file name that is only in case.
-        $clean = strtolower($clean);
-        if ($clean === '') {
-            return 'patch.patch';
-        }
-
-        return preg_match('/\.(patch|diff)$/', $clean) ? $clean : $clean . '.patch';
     }
 
     /**

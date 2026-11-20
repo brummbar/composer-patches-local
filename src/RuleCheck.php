@@ -103,11 +103,29 @@ final class RuleCheck
      */
     public static function fail(array $violations): never
     {
+        $hint = self::importHint($violations);
         throw new \RuntimeException(
             "composer-patches-local: the patches of this project break the rules.\n"
             . implode("\n", $violations)
             . "\nEvery patch must be a file in the patches/ folder of the root project."
+            . ($hint === null ? '' : "\n" . $hint)
         );
+    }
+
+    /**
+     * Returns a hint line when one of the violation lines is about a URL, or null.
+     *
+     * @param list<string> $violations
+     */
+    public static function importHint(array $violations): ?string
+    {
+        foreach ($violations as $line) {
+            if (str_ends_with($line, ': ' . PatchPath::URL_PROBLEM)) {
+                return 'Run composer patches-local-import to download the remote patches of the root project into the patches/ folder.';
+            }
+        }
+
+        return null;
     }
 
     private function fileProblem(string $file, ?string $sha256): ?string

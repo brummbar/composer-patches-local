@@ -26,6 +26,10 @@ final class CheckCommand extends BaseCommand
         if ($violations !== []) {
             $this->getIO()->writeError('<error>composer-patches-local: the patches of this project break the rules.</error>');
             $this->getIO()->writeError($violations);
+            $hint = RuleCheck::importHint($violations);
+            if ($hint !== null) {
+                $this->getIO()->writeError($hint);
+            }
 
             return 1;
         }
