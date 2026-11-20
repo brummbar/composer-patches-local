@@ -106,6 +106,17 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertProjectFileSame('mine', $project, 'patches/keep.patch');
     }
 
+    public function testAFileInASharedPatchesFolderStaysWhenThePatchesFolderIsALink(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
+        FileSystem::write($project->directory . '/shared/dependencies/notes.txt', 'mine');
+        symlink($project->directory . '/shared', $project->projectPath('patches'));
+
+        $this->assertComposerSucceeded($project->composer(['install']));
+
+        $this->assertFileExists($project->directory . '/shared/dependencies/notes.txt');
+    }
+
     #[DataProvider('skippedTargets')]
     public function testADependencyPatchForATargetThatComposerPatchesIgnoresIsSkipped(string $target): void
     {

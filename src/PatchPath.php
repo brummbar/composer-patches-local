@@ -18,6 +18,20 @@ final class PatchPath
     public const SCHEME_PATTERN = '[a-z][a-z0-9+.-]*';
 
     /**
+     * Returns the path of patches/dependencies.
+     * Returns null when the folder does not exist, or when patches/ or patches/dependencies/ is a link.
+     */
+    public static function copyFolder(string $projectDirectory): ?string
+    {
+        $folder = $projectDirectory . '/' . self::COPY_FOLDER;
+        if (is_link($projectDirectory . '/' . self::FOLDER) || is_link($folder) || !is_dir($folder)) {
+            return null;
+        }
+
+        return $folder;
+    }
+
+    /**
      * Returns the lowercase scheme when the path starts with "<scheme>://", or null.
      */
     public static function urlScheme(string $path): ?string

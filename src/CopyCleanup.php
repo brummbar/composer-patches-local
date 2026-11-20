@@ -15,8 +15,8 @@ final class CopyCleanup
      */
     public static function run(string $projectDirectory, array $referencedPaths): void
     {
-        $root = $projectDirectory . '/' . PatchPath::COPY_FOLDER;
-        if (is_link($root) || !is_dir($root)) {
+        $root = PatchPath::copyFolder($projectDirectory);
+        if ($root === null) {
             return;
         }
         $keep = [];

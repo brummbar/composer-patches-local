@@ -67,8 +67,8 @@ final class CopyReport
      */
     private static function snapshot(string $projectDirectory): array
     {
-        $root = $projectDirectory . '/' . PatchPath::COPY_FOLDER;
-        if (is_link($root) || !is_dir($root)) {
+        $root = PatchPath::copyFolder($projectDirectory);
+        if ($root === null) {
             return [];
         }
         $files = [];

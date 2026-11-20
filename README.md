@@ -152,6 +152,7 @@ To ignore all patches that one dependency declares, add it to the composer-patch
 - If two patches for the same package have the same content, only one applies. A project patch has priority over a dependency patch.
 - When the patches of a package change, the plugin reinstalls that package at the end of the run.
   During `composer update`, Composer can then install the package twice.
+- If `patches/` or `patches/dependencies/` is a link, the plugin does not delete old copies.
 
 ## Best practices
 
