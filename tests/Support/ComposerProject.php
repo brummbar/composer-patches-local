@@ -7,12 +7,12 @@ namespace Brummbar\ComposerPatchesLocal\Tests\Support;
 use Symfony\Component\Process\Process;
 
 /**
- * @phpstan-type PatchesLock array{patches: array<string, list<array{url: string, sha256?: string, extra: array{provenance: string}, ...}>>, 'composer-patches-local'?: string, ...}
- *
  * A root project in a temporary directory, with fixture packages around it.
  *
  * All packages are path repositories that Composer copies (no symlinks).
  * Packagist is off. The cweagans packages come from the vendor folder of this repository.
+ *
+ * @phpstan-type PatchesLock array{patches: array<string, list<array{url: string, sha256?: string, extra: array{provenance: string}, ...}>>, 'composer-patches-local'?: string, ...}
  */
 final class ComposerProject
 {
@@ -20,6 +20,8 @@ final class ComposerProject
         'cweagans/composer-patches',
         'cweagans/composer-configurable-plugin',
     ];
+
+    private const ROOT_CONFIG = ['secure-http' => false];
 
     public readonly string $directory;
 
@@ -42,9 +44,6 @@ final class ComposerProject
     private array $scripts = [];
 
     private string $cacheDirectory;
-
-    /** @var array<string, mixed> */
-    private array $rootConfig = ['secure-http' => false];
 
     public function __construct()
     {
@@ -183,6 +182,14 @@ final class ComposerProject
     }
 
     /**
+     * @param array<string, mixed> $lock
+     */
+    public function writePatchesLock(array $lock): void
+    {
+        FileSystem::write($this->projectPath('patches.lock.json'), self::encode($lock));
+    }
+
+    /**
      * Returns the files below a project folder: relative path => content, sorted by path.
      *
      * @return array<string, string>
@@ -219,7 +226,6 @@ final class ComposerProject
         $copy->withPlugin = $this->withPlugin;
         $copy->disableDependencyResolver = $this->disableDependencyResolver;
         $copy->pluginPackages = $this->pluginPackages;
-        $copy->rootConfig = $this->rootConfig;
         foreach ($paths as $path) {
             $source = $this->projectPath($path);
             if (is_dir($source)) {
@@ -264,7 +270,7 @@ final class ComposerProject
             'type' => 'project',
             'repositories' => $repositories,
             'require' => $require,
-            'config' => $this->rootConfig + ['allow-plugins' => $allowPlugins],
+            'config' => self::ROOT_CONFIG + ['allow-plugins' => $allowPlugins],
         ];
         $extra = $this->root->extra;
         if ($this->withPlugin && $this->disableDependencyResolver) {

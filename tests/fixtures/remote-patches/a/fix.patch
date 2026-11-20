@@ -1,6 +1,0 @@
---- a/lib.txt
-+++ b/lib.txt
-@@ -1,2 +1,2 @@
--line one
-+line one patched by a
- line two

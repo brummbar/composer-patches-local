@@ -24,8 +24,7 @@ final class FixturePackage
         public readonly array $extra = [],
         public readonly string $type = 'library',
         public readonly array $autoload = [],
-    )
-    {
+    ) {
     }
 
     /**

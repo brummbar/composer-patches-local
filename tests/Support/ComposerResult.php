@@ -13,7 +13,6 @@ final class ComposerResult
         public readonly int $exitCode,
         public readonly string $output,
         public readonly string $commandLine,
-    )
-    {
+    ) {
     }
 }

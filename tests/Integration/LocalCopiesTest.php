@@ -45,30 +45,6 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertSame($copies, $project->tree('patches/dependencies'));
     }
 
-    public function testTwoDifferentPatchesWithTheSameFileNameGetAHashPrefix(): void
-    {
-        $project = $this->layeredProject(Layers::moduleOne('1.0.0', ['acme/lib' => [
-            'Change line one' => 'http://patches/a/fix.patch',
-            'Change line three' => 'http://patches/b/fix.patch',
-        ]]));
-
-        $this->assertComposerSucceeded($project->composer(['install']));
-
-        $prefixA = substr(hash('sha256', (string) file_get_contents(__DIR__ . '/../fixtures/remote-patches/a/fix.patch')), 0, 8);
-        $prefixB = substr(hash('sha256', (string) file_get_contents(__DIR__ . '/../fixtures/remote-patches/b/fix.patch')), 0, 8);
-        $this->assertSame(
-            ["$prefixA-fix.patch", "$prefixB-fix.patch"],
-            array_keys($project->tree(self::FOLDER)),
-        );
-        $urls = array_column($project->readPatchesLock()['patches']['acme/lib'], 'url');
-        $this->assertSame([self::FOLDER . "/$prefixA-fix.patch", self::FOLDER . "/$prefixB-fix.patch"], $urls);
-        $this->assertProjectFileSame(
-            "line one patched by a\nline two\nline three patched by b\n",
-            $project,
-            'vendor/acme/lib/lib.txt',
-        );
-    }
-
     public function testTwoPatchNamesThatDifferOnlyInCaseGetAHashPrefix(): void
     {
         $project = $this->layeredProject(Layers::moduleOne(

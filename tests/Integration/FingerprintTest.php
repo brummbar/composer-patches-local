@@ -296,7 +296,7 @@ final class FingerprintTest extends ComposerTestCase
     {
         $lock = $project->readPatchesLock();
         $lock[self::KEY] = $fingerprint;
-        FileSystem::write($project->projectPath('patches.lock.json'), json_encode($lock, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+        $project->writePatchesLock($lock);
     }
 
     private function projectWithRemotePatch(): ComposerProject

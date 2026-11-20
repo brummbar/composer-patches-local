@@ -21,9 +21,9 @@ final class LayeredFixtures
 
     public const REMOTE_FIX_URL = 'http://patches/b/fix.patch?download=1#top';
 
-    public static function lib(string $version = '1.0.0'): FixturePackage
+    public static function lib(): FixturePackage
     {
-        return new FixturePackage('acme/lib', $version, ['lib.txt' => self::LIB_FILE]);
+        return new FixturePackage('acme/lib', '1.0.0', ['lib.txt' => self::LIB_FILE]);
     }
 
     /**

@@ -10,9 +10,9 @@ use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 
 /**
- * @phpstan-import-type PatchesLock from ComposerProject
- *
  * Tests the rule check and the command patches-local-check.
+ *
+ * @phpstan-import-type PatchesLock from ComposerProject
  */
 final class RuleCheckTest extends ComposerTestCase
 {
@@ -190,11 +190,10 @@ final class RuleCheckTest extends ComposerTestCase
     }
 
     /**
-     * @param callable(PatchesLock): array<mixed> $change
+     * @param callable(PatchesLock): array<string, mixed> $change
      */
     private function editLock(ComposerProject $project, callable $change): void
     {
-        $lock = $change($project->readPatchesLock());
-        FileSystem::write($project->projectPath('patches.lock.json'), json_encode($lock, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        $project->writePatchesLock($change($project->readPatchesLock()));
     }
 }
