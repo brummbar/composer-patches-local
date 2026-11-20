@@ -112,6 +112,46 @@ final class RootPatchImportTest extends ComposerTestCase
         $this->assertProjectFileSame($before, $project, 'composer.json');
     }
 
+    public function testAUrlSchemeThatIsNotAllowedChangesNoFile(): void
+    {
+        $project = $this->createProject();
+        $secret = $project->directory . '/secret.txt';
+        FileSystem::write($secret, "secret content\n");
+        Layers::addLayers($project, Layers::moduleOne());
+        $project->setRoot(Layers::site([], ['patches' => ['acme/lib' => [
+            'Innocent fix' => 'php://filter/resource=' . $secret,
+        ]]]))->withPlugin();
+        $this->assertComposerFailed($project->composer(['install']));
+        $before = $project->readFile('composer.json');
+
+        $result = $project->composer(['patches-local-import']);
+
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('allowed-schemes', $result);
+        $this->assertSame([], $project->tree('patches/acme/lib'));
+        $this->assertProjectFileSame($before, $project, 'composer.json');
+    }
+
+    public function testAWrongSha256ChangesNoFile(): void
+    {
+        $sha256 = str_repeat('ab', 32);
+        $project = $this->layeredProject(Layers::moduleOne(), Layers::site([], ['patches' => ['acme/lib' => [[
+            'description' => 'Change line two',
+            'url' => 'http://patches/lib-line-two.patch',
+            'sha256' => $sha256,
+        ]]]]));
+        FileSystem::write($project->directory . '/cache/patches/' . $sha256 . '.patch', "other content\n");
+        $this->assertComposerFailed($project->composer(['install']));
+        $before = $project->readFile('composer.json');
+
+        $result = $project->composer(['patches-local-import']);
+
+        $this->assertComposerFailed($result);
+        $this->assertOutputContains('sha256', $result);
+        $this->assertSame([], $project->tree('patches/acme/lib'));
+        $this->assertProjectFileSame($before, $project, 'composer.json');
+    }
+
     public function testAnImportDoesNotOverwriteAFileWithOtherContent(): void
     {
         $project = $this->layeredProject(Layers::moduleOne(), Layers::site(

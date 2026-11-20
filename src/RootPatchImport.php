@@ -47,6 +47,20 @@ final class RootPatchImport
             return;
         }
 
+        $allowed = AllowedSchemes::fromRoot($this->composer->getPackage());
+        foreach ($imports as $import) {
+            $scheme = (string) PatchPath::urlScheme($import['url']);
+            if (!in_array($scheme, $allowed, true)) {
+                $url = Url::sanitize($import['url']);
+                throw new \RuntimeException(
+                    "composer-patches-local: the patch \"$url\" of {$import['package']} has the scheme \"$scheme\". The scheme is not in \"allowed-schemes\" in extra.composer-patches-local of the root composer.json.\n"
+                    . 'The allowed schemes are: ' . implode(', ', $allowed) . ".\n"
+                    . "Copy the file into the patches/ folder by hand, and change its url.\n"
+                    . 'No file was changed.'
+                );
+            }
+        }
+
         // Download everything first, so that a failure leaves all files as they are.
         foreach ($imports as $key => $import) {
             $patch = new Patch();
@@ -57,7 +71,15 @@ final class RootPatchImport
                 $patch->sha256 = $import['sha256'];
             }
             $patches->download($patch);
-            $imports[$key]['content'] = (string) file_get_contents((string) $patch->localPath);
+            $content = (string) file_get_contents((string) $patch->localPath);
+            if ($import['sha256'] !== null && hash('sha256', $content) !== $import['sha256']) {
+                $url = Url::sanitize($import['url']);
+                throw new \RuntimeException(
+                    "composer-patches-local: the patch \"$url\" of {$import['package']} does not match its sha256.\n"
+                    . 'No file was changed.'
+                );
+            }
+            $imports[$key]['content'] = $content;
         }
 
         $files = [];

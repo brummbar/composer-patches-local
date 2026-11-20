@@ -106,6 +106,7 @@ At the end of the run, the plugin lists the copies that it wrote or deleted.
 ### Allowed URL schemes
 
 A URL of a dependency patch must have an allowed scheme. By default, these are `http` and `https`.
+`composer patches-local-import` stops when the URL of a root patch has a scheme that is not allowed.
 To change the list, set `allowed-schemes`. Your list replaces the default:
 
 ```json

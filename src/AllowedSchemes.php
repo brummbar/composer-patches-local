@@ -7,7 +7,7 @@ namespace Brummbar\ComposerPatchesLocal;
 use Composer\Package\RootPackageInterface;
 
 /**
- * The URL schemes that a patch URL of a dependency can use. The root project sets them in extra.composer-patches-local.
+ * The URL schemes that a patch URL of a dependency can use. The import command also uses this list. The root project sets them in extra.composer-patches-local.
  */
 final class AllowedSchemes
 {
