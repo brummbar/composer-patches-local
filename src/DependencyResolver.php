@@ -99,7 +99,7 @@ final class DependencyResolver extends ResolverBase
                     }
                     $sha256 = hash('sha256', $content);
                     if (isset($patch->sha256) && $patch->sha256 !== $sha256) {
-                        throw new \RuntimeException("The patch $declared of {$package->getName()} does not match its sha256.");
+                        throw new \RuntimeException('The patch ' . PatchPath::printable($declared) . " of {$package->getName()} does not match its sha256.");
                     }
                     $patch->sha256 = $sha256;
                     if ($remote) {
@@ -130,6 +130,7 @@ final class DependencyResolver extends ResolverBase
     private function schemeError(PackageInterface $package, string $declared, string $scheme, array $allowedSchemes): \RuntimeException
     {
         $declaring = $package->getName();
+        $declared = PatchPath::printable($declared);
         $list = implode(', ', $allowedSchemes);
 
         return new \RuntimeException(
@@ -143,6 +144,7 @@ final class DependencyResolver extends ResolverBase
     private function outsideError(PackageInterface $package, string $declared): \RuntimeException
     {
         $declaring = $package->getName();
+        $declared = PatchPath::printable($declared);
 
         return new \RuntimeException(
             "composer-patches-local: the package $declaring declares the patch \"$declared\". "
@@ -164,14 +166,14 @@ final class DependencyResolver extends ResolverBase
         $filesystem = new Filesystem();
         $installPath = $this->composer->getInstallationManager()->getInstallPath($package);
         if ($installPath === null) {
-            throw new \RuntimeException("Package {$package->getName()} has no install path, so its local patch $path has no folder.");
+            throw new \RuntimeException("Package {$package->getName()} has no install path, so its local patch " . PatchPath::printable($path) . ' has no folder.');
         }
         if (!$filesystem->isAbsolutePath($installPath)) {
             $installPath = $projectDirectory . '/' . $installPath;
         }
         $file = $filesystem->normalizePath($installPath . '/' . $path);
         if (!is_file($file)) {
-            throw new \RuntimeException("Package {$package->getName()} declares the patch $path, but the file $file does not exist.");
+            throw new \RuntimeException("Package {$package->getName()} declares the patch " . PatchPath::printable($path) . ', but the file ' . PatchPath::printable($file) . ' does not exist.');
         }
         $realInstall = realpath($installPath);
         $realFile = realpath($file);

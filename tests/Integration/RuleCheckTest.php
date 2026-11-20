@@ -142,6 +142,25 @@ final class RuleCheckTest extends ComposerTestCase
         }
     }
 
+    public function testAControlCharacterInTheDescriptionOfADependencyPatchIsNotPrinted(): void
+    {
+        $description = "Change\e]0;PWNED\x07 line two";
+        $moduleOne = Layers::moduleOne(
+            '1.0.0',
+            ['acme/lib' => [$description => Layers::LOCAL_PATCH_PATH]],
+            [Layers::LOCAL_PATCH_PATH => Layers::lineTwoPatch('module-one')],
+        );
+        $project = $this->layeredProject($moduleOne);
+        $this->assertComposerSucceeded($project->composer(['install']));
+        FileSystem::write($project->projectPath(self::COPY), Layers::lineTwoPatch('someone else'));
+
+        $result = $project->composer(['install']);
+
+        $this->assertComposerFailed($result);
+        $this->assertStringNotContainsString("\e]0;PWNED", $result->output);
+        $this->assertOutputContains('"Change?]0;PWNED? line two" (' . self::COPY . '): the file content does not match the sha256', $result);
+    }
+
     public function testALockEntryWithoutSha256StopsTheCommand(): void
     {
         $project = $this->installedProject();

@@ -316,6 +316,22 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertNoCopyReport($again);
     }
 
+    public function testANewlineInThePathOfADependencyPatchDoesNotAddALineToTheCopyReport(): void
+    {
+        $path = "patches/fix\n  - fake line.patch";
+        $project = $this->layeredProject(Layers::moduleOne(
+            '1.0.0',
+            ['acme/lib' => ['Change line two' => $path]],
+            [$path => Layers::lineTwoPatch('module-one')],
+        ));
+
+        $result = $project->composer(['install']);
+
+        $this->assertComposerSucceeded($result);
+        $this->assertStringNotContainsString("\n  - fake line", $result->output);
+        $this->assertOutputContains('patches/fix?  - fake line.patch', $result);
+    }
+
     public function testARootPatchWithTheSameContentAsADependencyPatchWinsAndNoCopyStays(): void
     {
         $site = Layers::site([

@@ -183,6 +183,6 @@ final class RuleCheck
 
     private function line(string $package, string $description, string $url, string $problem): string
     {
-        return "  - $package, \"$description\" ($url): $problem";
+        return PatchPath::printable("  - $package, \"$description\" ($url): $problem");
     }
 }

@@ -18,6 +18,16 @@ final class PatchPath
     public const SCHEME_PATTERN = '[a-z][a-z0-9+.-]*';
 
     /**
+     * Replaces each control character with "?".
+     * A dependency or the lock can put control characters into a message.
+     * Composer prints an exception message raw, and it keeps newlines in other output.
+     */
+    public static function printable(string $text): string
+    {
+        return preg_replace('/[\x00-\x1F\x7F]|\xC2[\x80-\x9F]/', '?', $text) ?? '';
+    }
+
+    /**
      * Returns the path of patches/dependencies.
      * Returns null when the folder does not exist, or when patches/ or patches/dependencies/ is a link.
      */

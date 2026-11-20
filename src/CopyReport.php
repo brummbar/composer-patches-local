@@ -154,12 +154,13 @@ final class CopyReport
         if (!is_string($source) || $source === '') {
             return null;
         }
+        $source = PatchPath::printable($source);
         if (PatchPath::urlScheme($source) !== null) {
             return OutputFormatter::escape(Url::sanitize($source));
         }
         $provenance = $extra['provenance'] ?? null;
         if (is_string($provenance) && str_starts_with($provenance, 'dependency:')) {
-            $declaring = substr($provenance, strlen('dependency:'));
+            $declaring = PatchPath::printable(substr($provenance, strlen('dependency:')));
 
             return OutputFormatter::escape($source) . ' in ' . OutputFormatter::escape($declaring);
         }

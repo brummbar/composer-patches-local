@@ -56,6 +56,18 @@ final class DependencyPatchesTest extends ComposerTestCase
         $this->assertFileDoesNotExist($marker);
     }
 
+    public function testAControlCharacterInADeclaredPatchPathIsNotPrinted(): void
+    {
+        $declared = "../x\e]0;PWNED\x07.patch";
+        $project = $this->layeredProject(Layers::moduleOne('1.0.0', ['acme/lib' => ['Change' => $declared]]));
+
+        $result = $project->composer(['install']);
+
+        $this->assertComposerFailed($result);
+        $this->assertStringNotContainsString("\e]0;PWNED", $result->output);
+        $this->assertOutputContains('../x?]0;PWNED?.patch', $result);
+    }
+
     public function testTwoDependenciesCanUseTheSamePatchFileName(): void
     {
         $project = $this->createProject();
