@@ -8,6 +8,7 @@
 - Copy names are lowercase. Git on macOS and Windows does not record a change of a file name that is only in case.
 - If two different patches get the same name in one folder, both names get an 8-character sha256 prefix.
 - The plugin deletes copies that nothing uses. It deletes an empty `patches/dependencies/` too.
+- Before the first relock of a run, the plugin takes a snapshot of `patches/dependencies/` (path and sha256 of each file). After the cleanup, it compares the snapshot with the folder and lists the new or changed copies and the deleted copies. The snapshot is a static property of `CopyReport`, so that it survives a plugin update in the run.
 - `patches.lock.json` has a top-level key `composer-patches-local`. It is a fingerprint of the patch inputs. Of the locked package names, it contains only the targets of dependency patches.
 - On `composer install`, a missing or different fingerprint makes the install rebuild the lock like an update. With `--no-dev`, the install stops with an error instead. If the fingerprint is the same, the install downloads nothing.
 - For each patched package, the plugin stores a hash of the applied patches under the key `composer-patches-local` in `vendor/composer/installed.json`.

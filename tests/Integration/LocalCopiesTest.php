@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerProject;
+use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerResult;
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
@@ -275,6 +276,35 @@ final class LocalCopiesTest extends ComposerTestCase
         $this->assertSame($project->tree('patches'), $checkout->tree('patches'));
     }
 
+    public function testAnUpdateListsTheCopiesThatItWritesAndDeletes(): void
+    {
+        $project = $this->layeredProject(Layers::moduleOneWithLocalPatch());
+        $first = $project->composer(['install']);
+        $this->assertComposerSucceeded($first);
+        $this->assertOutputContains('patches/dependencies/acme/module-one/acme/lib/lib-line-two.patch', $first);
+        $project->addPackage(Layers::moduleOne('1.1.0', [
+            'acme/lib' => [
+                'Change line one' => Layers::LINE_ONE_PATCH_PATH,
+                'Change line three' => 'http://user:secret@patches/b/fix.patch',
+            ],
+        ], [Layers::LINE_ONE_PATCH_PATH => Layers::lineOnePatch('module-one')]));
+
+        $update = $project->composer(['update']);
+
+        $this->assertComposerSucceeded($update);
+        $this->assertOutputContains('composer-patches-local: copied these patches from dependencies:', $update);
+        $this->assertOutputContains('  - ' . self::FOLDER . '/fix.patch (from http://user:***@patches/b/fix.patch)', $update);
+        $this->assertOutputContains('  - ' . self::FOLDER . '/lib-line-one.patch (from patches/lib-line-one.patch in acme/module-one)', $update);
+        $this->assertOutputContains('composer-patches-local: deleted these patch copies, because no patch uses them now:', $update);
+        $this->assertOutputContains('  - ' . self::FOLDER . '/lib-line-two.patch', $update);
+        $this->assertStringNotContainsString('secret', $update->output);
+
+        $again = $project->composer(['update']);
+
+        $this->assertComposerSucceeded($again);
+        $this->assertNoCopyReport($again);
+    }
+
     public function testARootPatchWithTheSameContentAsADependencyPatchWinsAndNoCopyStays(): void
     {
         $site = Layers::site([
@@ -283,11 +313,21 @@ final class LocalCopiesTest extends ComposerTestCase
         ]);
         $project = $this->layeredProject(Layers::moduleOneWithLocalPatch(), $site);
 
-        $this->assertComposerSucceeded($project->composer(['install']));
+        $install = $project->composer(['install']);
+        $this->assertComposerSucceeded($install);
+        $this->assertNoCopyReport($install);
         $this->assertRootPatchWins($project);
 
-        $this->assertComposerSucceeded($project->composer(['update']));
+        $update = $project->composer(['update']);
+        $this->assertComposerSucceeded($update);
+        $this->assertNoCopyReport($update);
         $this->assertRootPatchWins($project);
+    }
+
+    private function assertNoCopyReport(ComposerResult $result): void
+    {
+        $this->assertStringNotContainsString('copied these patches from dependencies', $result->output);
+        $this->assertStringNotContainsString('deleted these patch copies', $result->output);
     }
 
     private function assertRootPatchWins(ComposerProject $project): void

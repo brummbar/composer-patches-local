@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Brummbar\ComposerPatchesLocal\Tests\Integration;
 
 use Brummbar\ComposerPatchesLocal\Tests\Support\ComposerTestCase;
+use Brummbar\ComposerPatchesLocal\Tests\Support\FileSystem;
 use Brummbar\ComposerPatchesLocal\Tests\Support\FixturePackage;
 use Brummbar\ComposerPatchesLocal\Tests\Support\LayeredFixtures as Layers;
 
@@ -37,11 +38,19 @@ final class PluginUpdateTest extends ComposerTestCase
         $this->assertComposerSucceeded($project->composer(['install']));
         $project->releasePluginUpdate('1.0.1')
             ->addPackage(new FixturePackage('acme/lib', '1.1.0', ['lib.txt' => "line one\nline two\nline three\nline four\n"]));
+        // The old plugin object writes the copy again at the start of the run, and the new object prints the list.
+        // Only a snapshot that both objects share lists the copy.
+        FileSystem::remove($project->projectPath('patches/dependencies'));
 
         $result = $project->composer(['update']);
 
         $this->assertComposerSucceeded($result);
         $this->assertOutputContains('Upgrading brummbar/composer-patches-local', $result);
+        $this->assertOutputContains('copied these patches from dependencies', $result);
+        $this->assertOutputContains(
+            '  - patches/dependencies/acme/module-one/acme/lib/lib-line-two.patch (from patches/lib-line-two.patch in acme/module-one)',
+            $result,
+        );
         $this->assertProjectFileSame(
             "line one\nline two patched by module-one\nline three\nline four\n",
             $project,

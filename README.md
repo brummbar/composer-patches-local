@@ -83,6 +83,7 @@ patches/
 ```
 
 `patches.lock.json` points to the copies. For a remote patch, `extra.source` keeps the URL.
+At the end of the run, the plugin lists the copies that it wrote or deleted.
 
 - The plugin ignores the `extra` data of a dependency patch, for example `extra.freeform`.
   If a dependency patch needs it, copy the patch to the `patches/` folder and declare it as a project patch.

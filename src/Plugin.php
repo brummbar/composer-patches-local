@@ -140,7 +140,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         }
         $this->relockRun = true;
         if ($this->reinstall) {
-            (new Relock($this->composer, $this))->run([]);
+            $this->relock([]);
         }
     }
 
@@ -170,7 +170,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
                 $skipped[] = $operation->getTargetPackage()->getName();
             }
         }
-        (new Relock($this->composer, $this))->run($skipped);
+        $this->relock($skipped);
         $this->startRelockDone = true;
     }
 
@@ -214,7 +214,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     private function finishWithRelock(Event $event): void
     {
         $patches = ComposerPatches::find($this->composer);
-        (new Relock($this->composer, $this))->run([], true);
+        $this->relock([], true);
         // CopyCleanup must keep only the copies that are in patches.lock.json.
         // When two patches have the same content, the lock keeps only one of them.
         // Read the lock and not the patches that the resolvers found.
@@ -227,9 +227,22 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
                 $referenced[] = is_string($url) ? $url : '';
             }
         }
-        CopyCleanup::run(ComposerPatches::projectDirectory($patches), $referenced);
+        $projectDirectory = ComposerPatches::projectDirectory($patches);
+        CopyCleanup::run($projectDirectory, $referenced);
+        CopyReport::printChanges($this->io, $projectDirectory, $lockedPatches);
         $this->failOn((new RuleCheck($this->composer))->lockViolations());
         (new Repatch($this->composer, $this->io))->run($event->isDevMode());
+    }
+
+    /**
+     * All relocks use this method, so that the snapshot of the copies exists before the plugin changes a copy.
+     *
+     * @param list<string> $skippedPackages
+     */
+    private function relock(array $skippedPackages, bool $full = false): void
+    {
+        CopyReport::takeSnapshot(ComposerPatches::projectDirectory(ComposerPatches::find($this->composer)));
+        (new Relock($this->composer, $this))->run($skippedPackages, $full);
     }
 
     /**
